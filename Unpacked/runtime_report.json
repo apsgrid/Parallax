@@ -1,0 +1,17 @@
+{
+  "relocated_input_start": 12716,
+  "relocated_input_end": 65534,
+  "runtime_output_start": 2048,
+  "runtime_output_end": 55065,
+  "runtime_entry": 2880,
+  "stats": {
+    "input_bytes": 52819,
+    "output_bytes": 53018,
+    "runs": 189,
+    "run_bytes": 735,
+    "triples": 31,
+    "triple_bytes": 93,
+    "literals": 52190
+  },
+  "runtime_image_sha256": "0537f6d09984fff5e0de38dddf2a1e49970e3ae045d2891046fc62f596195e6b"
+}

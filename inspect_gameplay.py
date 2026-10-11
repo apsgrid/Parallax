@@ -1,0 +1,19 @@
+from pathlib import Path
+from py65.devices.mpu6502 import MPU
+from py65.disassembler import Disassembler
+
+mem=bytearray(Path(r"E:\Projects\Parallax\Unpacked\runtime_ram.bin").read_bytes())
+m=MPU(); m.memory[:]=mem; d=Disassembler(m)
+
+def dump(start,count):
+    print(f"\n--- {start:04X} ---")
+    pc=start
+    for _ in range(count):
+        ln,txt=d.instruction_at(pc)
+        bs=" ".join(f"{mem[pc+i]:02X}" for i in range(ln))
+        print(f"{pc:04X}: {bs:<9} {txt}")
+        pc+=ln
+
+dump(0x18A0,140)
+dump(0x28F0,180)
+dump(0x2AF0,100)

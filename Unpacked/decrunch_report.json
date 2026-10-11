@@ -1,0 +1,21 @@
+{
+  "packed_prg": "E:\\Projects\\Parallax\\Extracted\\00_PARALLAX.prg",
+  "load_address": 2049,
+  "compressed_source_start": 48545,
+  "compressed_source_final": 1923,
+  "output_high": 54975,
+  "output_low": 2049,
+  "entry_point": 2049,
+  "bitbuf_final": 128,
+  "stats": {
+    "source_bytes": 46623,
+    "dest_bytes": 52927,
+    "literal_bytes": 34991,
+    "match_bytes": 17936,
+    "matches": 6531,
+    "literal_runs": 3628,
+    "match_groups": 3628
+  },
+  "ram_sha256": "55db36fecf9a979d1200babd90ddf741221e88753bd4def24872ac7081022e32",
+  "game_sha256": "b8aaf09432d5cde76b9a22260bbb57db8679f02a689a2706749cd8e023f7676b"
+}

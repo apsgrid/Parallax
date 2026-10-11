@@ -1,0 +1,17 @@
+{
+  "relocated_input_start": 16896,
+  "relocated_input_end": 65534,
+  "output_start": 2048,
+  "output_end": 61247,
+  "entry": 51864,
+  "stats": {
+    "input_bytes": 48639,
+    "output_bytes": 59200,
+    "runs": 610,
+    "triples": 248,
+    "spaces": 229,
+    "zeros": 183,
+    "literals": 45489
+  },
+  "sha256": "0298aa64a35ac038af1010936a8106554125ede69471edff5b0e540c31d99a66"
+}

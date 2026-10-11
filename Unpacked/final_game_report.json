@@ -1,0 +1,18 @@
+{
+  "compressed_boundary": 36328,
+  "compressed_final": 1923,
+  "output_low": 2049,
+  "output_high": 55948,
+  "entry": 2049,
+  "bitbuf_final": 128,
+  "stats": {
+    "source_bytes": 34405,
+    "dest_bytes": 53900,
+    "literal_bytes": 13762,
+    "match_bytes": 40138,
+    "matches": 12738,
+    "literal_runs": 6321,
+    "match_groups": 6321
+  },
+  "sha256": "c6b9f9a02b9c84ea335bd9af8986c62b03af2fd03c13cc14ccc771c9251850c3"
+}

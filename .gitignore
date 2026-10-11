@@ -1,0 +1,15 @@
+# Original copyrighted media / generated binary dumps
+Source/*.d64
+Source/*.D64
+Source/*.nib
+Source/*.tap
+Source/*.t64
+Source/*.T64
+Extracted/*.prg
+Extracted/*.bin
+Extracted/*.b64
+Unpacked/*.bin
+
+# local caches
+__pycache__/
+*.pyc
