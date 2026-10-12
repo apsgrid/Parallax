@@ -46,3 +46,15 @@ dump_live_world*.py
 extract_world_map.py
 find_world_writers.py
 trace_world_loader.py
+
+# Local RE tooling state / generated audit outputs
+.funes/
+.memory_source/
+rea_audit/
+cs_*.json
+shield_trace.txt
+shield_block_trace.txt
+shield_indexed_trace.txt
+rea_help.txt
+rea_*_help.txt
+funes_git_milestones.txt

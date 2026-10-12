@@ -324,3 +324,25 @@ Mode 1:
 - H15 (2, 3)
 
 These values are now used directly by the Godot reference controller rather than approximated with trigonometry.
+
+### `$CF26` shield flag — VERIFIED toggle/status; gameplay effect OPEN
+
+Second-pass audit using Funes recall, Code Spelunker structural search, and a full static xref scan of the corrected playable image narrowed the shield state substantially.
+
+Verified direct accesses to `$CF26`:
+- `$2014-$2019`: F7 handler reads `$CF26`, XORs with 1, and writes it back.
+- `$1D48+`: status/inventory display selects `SHIELDS..ON` versus `SHIELDS.OFF`.
+- After the F7 toggle, `$201C-$201F` adds 6 to the new state and jumps to `$1FA8`.
+- `$1FA8` is an event/status queue writer: it appends the event ID to `$CF17+Y` and increments `$CF25`. This is presentation/update signalling, not shield physics.
+
+Additional negative evidence:
+- No other direct `$CF26` read/write exists in the corrected `$0800-$FFFF` runtime.
+- Generic `$CF00,X/Y` state paths used by the inventory/ground routines were inspected. Their relevant index tables do not contain `$26`.
+- The only immediate byte load of `#$26` in the runtime is unrelated pointer setup at `$0D14`.
+
+Interpretation:
+- **VERIFIED:** F7 toggles a persistent shield on/off state and queues a corresponding status-display update.
+- **STRONG NEGATIVE EVIDENCE:** no resident flight damage/collision consumer of `$CF26` has been identified.
+- **OPEN:** a less obvious indirect/self-modifying path, overlay-specific use, or deliberately cosmetic/unimplemented original feature is still possible.
+
+Remake rule until stronger evidence exists: Original Rules mode should preserve the toggle/status state but must not invent damage reduction, invulnerability, energy drain, or collision effects.
