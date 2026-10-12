@@ -281,3 +281,46 @@ The first modern flight prototype should preserve these mechanics before changin
 9. Projectile/laser altitude captured at firing time.
 
 For the remake we can later expose smoother analogue steering and interpolation, but these original rules should remain available as the reference/original handling model.
+
+
+## Recovered heading target tables
+
+The playable runtime contains two 16-direction integer velocity target sets.
+
+Mode 0:
+- H00 (0, 2)
+- H01 (-1, 2)
+- H02 (-2, 2)
+- H03 (-2, 1)
+- H04 (-2, 0)
+- H05 (-2, -1)
+- H06 (-2, -2)
+- H07 (-1, -2)
+- H08 (0, -2)
+- H09 (1, -2)
+- H10 (2, -2)
+- H11 (2, -1)
+- H12 (2, 0)
+- H13 (2, 1)
+- H14 (2, 2)
+- H15 (1, 2)
+
+Mode 1:
+- H00 (0, 3)
+- H01 (-2, 3)
+- H02 (-3, 3)
+- H03 (-3, 2)
+- H04 (-3, 0)
+- H05 (-3, -2)
+- H06 (-3, -3)
+- H07 (-2, -3)
+- H08 (0, -3)
+- H09 (2, -3)
+- H10 (3, -3)
+- H11 (3, -2)
+- H12 (3, 0)
+- H13 (3, 2)
+- H14 (3, 3)
+- H15 (2, 3)
+
+These values are now used directly by the Godot reference controller rather than approximated with trigonometry.

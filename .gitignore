@@ -20,3 +20,6 @@ flight_state_raw.txt
 flight_chain.txt
 landing_collision.txt
 playable_verify.txt
+
+# Godot generated state
+Godot/.godot/
