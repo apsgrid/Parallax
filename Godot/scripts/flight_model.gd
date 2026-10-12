@@ -37,6 +37,19 @@ var landed := false
 var footprint_safe_cells := 0
 var acceleration_step := ACCEL_NORMAL
 
+# Recovered mode-transition state:
+# $F4 != 0 routes the next frame through $E000 ground mode.
+# $F3 is cleared by $E000 and restored to 1 on return to flight.
+# $E049 guards the one-time ground initialization block.
+var ground_transition_flag := false
+var flight_raster_mode := true
+var ground_initialized := false
+
+# Ground-mode player displacement from the stored craft screen position.
+# $EB5B accepts the normal return-to-ship path only inside -7..+7.
+var ground_player_offset := Vector2i.ZERO
+var ground_entry_world := Vector2i.ZERO
+
 var _input_counters := [0, 0, 0, 0]
 
 
@@ -55,6 +68,11 @@ func reset() -> void:
     landed = false
     footprint_safe_cells = 0
     acceleration_step = ACCEL_NORMAL
+    ground_transition_flag = false
+    flight_raster_mode = true
+    ground_initialized = false
+    ground_player_offset = Vector2i.ZERO
+    ground_entry_world = Vector2i.ZERO
     _input_counters = [0, 0, 0, 0]
 
 
@@ -69,10 +87,23 @@ func toggle_speed_mode() -> void:
 func step(input_bits: int, fire_pressed: bool, safe_cells: int) -> Dictionary:
     var events := {
         "laser": false,
-        "landed": false,
+        "ground_transition_requested": false,
+        "entered_ground": false,
+        "exited_ground": false,
     }
 
-    if landed:
+    # The flight dispatcher tests $F4 before running any flight update.
+    # Therefore the FIRE frame only sets the transition flag; $E000 runs
+    # on the following 50 Hz tick.
+    if ground_transition_flag:
+        if not ground_initialized:
+            _enter_ground_mode()
+            events["entered_ground"] = true
+            return events
+
+        if fire_pressed and _can_return_to_ship():
+            _exit_ground_mode()
+            events["exited_ground"] = true
         return events
 
     footprint_safe_cells = clampi(safe_cells, 0, 9)
@@ -113,16 +144,52 @@ func step(input_bits: int, fire_pressed: bool, safe_cells: int) -> Dictionary:
     if fire_pressed:
         if landing_ready:
             if vx_hi == 0 and vy_hi == 0:
-                landed = true
-                events["landed"] = true
+                ground_transition_flag = true
+                events["ground_transition_requested"] = true
         else:
             events["laser"] = true
 
-    if not landed:
-        world_x += vx_hi
-        world_y += vy_hi
+    world_x += vx_hi
+    world_y += vy_hi
 
     return events
+
+
+func _enter_ground_mode() -> void:
+    # $E000 one-time initialization: mark initialized, clear $F3, preserve
+    # the flight/world anchor that the ground module later returns to.
+    ground_initialized = true
+    flight_raster_mode = false
+    landed = true
+    ground_entry_world = Vector2i(world_x, world_y)
+    ground_player_offset = Vector2i.ZERO
+    vx_hi = 0
+    vy_hi = 0
+
+
+func _can_return_to_ship() -> bool:
+    return (
+        ground_player_offset.x >= -7
+        and ground_player_offset.x <= 7
+        and ground_player_offset.y >= -7
+        and ground_player_offset.y <= 7
+    )
+
+
+func _exit_ground_mode() -> void:
+    # $EB92-$EBD0 temporarily feeds the player-to-craft delta through the
+    # scroll update before restoring the stored craft position and flight
+    # mode. Preserve the equivalent displacement in our reference world.
+    world_x += ground_player_offset.x
+    world_y += ground_player_offset.y
+    vx_hi = 0
+    vy_hi = 0
+
+    ground_transition_flag = false
+    ground_initialized = false
+    flight_raster_mode = true
+    landed = false
+    ground_player_offset = Vector2i.ZERO
 
 
 func _process_direction_input(input_bits: int) -> void:

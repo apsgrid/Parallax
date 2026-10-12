@@ -11,6 +11,7 @@ func _initialize() -> void:
     _test_height_controls()
     _test_velocity_convergence()
     _test_landing_regime()
+    _test_ground_round_trip()
     _test_laser_event()
 
     if failures == 0:
@@ -85,7 +86,36 @@ func _test_landing_regime() -> void:
     _check(m.vx_hi == 0 and m.vy_hi == 0, "recovered landing brake holds zero integer velocity")
 
     var events := m.step(0, true, 9)
-    _check(events["landed"] and m.landed, "fire commits flight-to-ground transition when landing-ready and stopped")
+    _check(events["ground_transition_requested"], "landing FIRE sets the recovered $F4 transition flag")
+    _check(m.ground_transition_flag and not m.landed, "ground mode starts on the following tick, not the FIRE tick")
+
+    events = m.step(0, false, 9)
+    _check(events["entered_ground"] and m.landed, "next tick enters the recovered $E000 ground dispatcher")
+    _check(m.ground_initialized, "$E049-equivalent ground initialization guard is set")
+    _check(not m.flight_raster_mode, "$E000 clears the $F3-equivalent flight raster mode")
+
+
+func _test_ground_round_trip() -> void:
+    var m := FlightModel.new()
+    m.flight_height = FlightModel.LANDING_HEIGHT
+    m.landing_gear = true
+    m.world_x = 100
+    m.world_y = 200
+
+    m.step(0, false, 9)
+    m.step(0, true, 9)
+    m.step(0, false, 9)
+
+    m.ground_player_offset = Vector2i(8, 0)
+    var events := m.step(0, true, 9)
+    _check(not events["exited_ground"] and m.landed, "return-to-ship gate rejects +8 X offset")
+
+    m.ground_player_offset = Vector2i(3, -2)
+    events = m.step(0, true, 9)
+    _check(events["exited_ground"] and not m.landed, "FIRE near stored craft position returns to flight")
+    _check(not m.ground_transition_flag and m.flight_raster_mode, "return clears $F4-equivalent state and restores $F3-equivalent flight mode")
+    _check(not m.ground_initialized, "return clears the $E049-equivalent initialization guard")
+    _check(m.world_x == 103 and m.world_y == 198, "return path applies player-to-craft scroll realignment")
 
 
 func _test_laser_event() -> void:

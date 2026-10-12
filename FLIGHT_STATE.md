@@ -215,7 +215,7 @@ Interpretation: craft is at the landing flight level, gear is down, and the foot
 
 Set only by the landing-ready path above; cleared in normal flight.
 
-### $F4 — flight-to-ground transition state (STRONG)
+### $F4 — flight-to-ground transition state (SUPERSEDED; see verified round-trip section below)
 
 The flight dispatcher jumps to \`$E000\` whenever \`$F4 != 0\`.
 
@@ -346,3 +346,21 @@ Interpretation:
 - **OPEN:** a less obvious indirect/self-modifying path, overlay-specific use, or deliberately cosmetic/unimplemented original feature is still possible.
 
 Remake rule until stronger evidence exists: Original Rules mode should preserve the toggle/status state but must not invent damage reduction, invulnerability, energy drain, or collision effects.
+
+## Verified flight ↔ ground round trip
+
+The normal round trip is now reconstructed in detail; see `TRANSITION_STATE.md` for the address-by-address flow.
+
+- Landing FIRE at `$10DA` sets `$F4=1` but does not immediately switch modes.
+- On the next 50 Hz tick, `$0E30` sees `$F4` and jumps to `$E000`.
+- `$E000` uses `$E049` as a one-time ground-init guard and clears `$F3` for ground raster/update mode.
+- `$E064` preserves the craft coordinate and flight scroll state while handing control to the ground module.
+- `$EB5B` is the normal return-to-ship gate, called every ground frame.
+- Normal return requires player-to-craft X/Y deltas in -7..+7.
+- Successful return clears `$E049/$F4`, restores `$F3=1`, restores craft state, and returns to normal flight on the next main-loop tick.
+
+Open edge cases:
+- `$E9E5 == 6` widens the negative X return range to -27; exact purpose remains unknown.
+- `$E720` is an alternate ground-exit/control path; exact player-facing trigger remains unknown.
+
+The Godot reference model now preserves this two-stage entry and normal return sequence and tests the full round trip.

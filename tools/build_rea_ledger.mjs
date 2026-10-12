@@ -37,12 +37,12 @@ const findings = [
   },
   {
     id: "transition.flight-ground",
-    title: "Reconstruct exact flight-to-ground transition and reverse launch path",
+    title: "Resolve special/alternate flight-ground transition paths beyond the verified normal round trip",
     family: "mode-transition",
-    location: "$10FB/$F4 -> $E000",
-    finding: "Landing-ready gating and the $F4 jump to $E000 are strongly identified, but exact player-visible transition timing, ground initialization and reverse takeoff path remain incomplete.",
-    sources: ["FLIGHT_STATE.md"],
-    next: ["Recursively trace $E000 ground-module initialization.", "Identify the reverse transition back to flight and all preserved/reset state.", "Add a flight/ground round-trip reference test."]
+    location: "$10FB/$F4 -> $E000; normal return $EB5B; alternate exit $E720",
+    finding: "The normal transition is reconstructed and implemented: landing FIRE sets $F4, the next tick enters $E000, $E049 gates one-time ground init, $F3 is cleared in ground mode, and $EB5B returns to flight when the player is within the stored craft proximity gate. Remaining uncertainty is limited to the $E9E5==6 widened X return range and alternate $E720 exit path.",
+    sources: ["FLIGHT_STATE.md", "TRANSITION_STATE.md", "Godot/scripts/flight_model.gd", "Godot/tests/test_flight_model.gd", "trace_ground_transition.py", "trace_ground_return.py"],
+    next: ["Determine the player-facing meaning of the $E9E5==6 special return range.", "Trace the $E720 alternate exit path to its triggering interaction/state.", "Capture one controlled original VICE round trip when the ground controller is reconstructed."]
   },
   {
     id: "rendering.ship-shadow-ownership",

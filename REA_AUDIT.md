@@ -30,8 +30,8 @@ Generated graph JSON remains local under `rea_audit/`.
 ## REA reconstruction obligation ledger
 
 Authenticated review Evidence was generated with REA's own `createEvidence()` and `createEvidenceBundle()` implementation.
-- ledger ID: `rol_f1b1874e398a27c9c33fc386048d3025ce6927cacd2c884bc05749df11326ca1`
-- closure digest: `9de87aaab9b56a7ccba450db866ec7d0c3a431c1de8478f2bb906814e8da863a`
+- ledger ID: `rol_8cbb55ffe466198ab1badb9698bf3539bdb0ed8e17bbdf0aa80e7a3ada66296d`
+- closure digest: `882f390a92401b9ce1c15d39f05231b8e1086a489738d75a242d1845b578fe7b`
 - status: `unknown` (intentionally conservative)
 - required obligations: 5
 - verified: 0
@@ -41,12 +41,12 @@ Tracked obligations:
 1. shield behavior beyond toggle/status presentation;
 2. RETURN/datacard/password computer behavior;
 3. exact collision-tile taxonomy;
-4. exact flight-to-ground transition and reverse launch path;
+4. special/alternate flight-ground paths beyond the verified normal round trip;
 5. exact ship/shadow projection ownership.
 
 ## Funes validation
 
-Current project memory source validates as 19 turns / 49 chunks / 0 rejected / 0 duplicate IDs before indexing.
+Current project memory source validates as 21 turns / 57 chunks / 0 rejected / 0 duplicate IDs before indexing.
 Recall checks correctly retrieved:
 - corrected Stage-5 range, byte count and SHA-256;
 - post-startup viewport/player coordinates;
@@ -63,3 +63,22 @@ Funes is a retrieval layer, not original-game authority.
 - no identified resident flight damage/collision consumer of `$CF26`.
 
 This is strong negative evidence, not proof that every possible indirect/self-modifying/overlay path is absent. Original Rules mode must not invent a shield protection effect until stronger evidence is found.
+
+## Second-pass finding: flight ↔ ground transition
+
+The normal flight/ground round trip is now reconstructed and implemented in the reference model.
+
+Verified core sequence:
+- landing FIRE sets `$F4` but does not switch mode immediately;
+- next-tick flight dispatch jumps to `$E000`;
+- `$E049` gates one-time ground initialization;
+- `$F3` is cleared in ground mode and restored to 1 on return;
+- `$EB5B` is the normal return-to-ship gate;
+- normal player-to-craft return range is -7..+7 on both axes;
+- successful return realigns scroll state, clears `$E049/$F4`, restores the craft coordinate, and resumes flight on the next tick.
+
+Godot reference tests now exercise the two-stage entry, ground state, rejected +8 offset, successful near-craft return, flag restoration and scroll realignment.
+
+Remaining open transition evidence is limited to:
+- the `$E9E5 == 6` special case that widens the negative X return bound to -27;
+- the alternate `$E720` exit/control path.

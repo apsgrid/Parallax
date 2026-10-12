@@ -53,14 +53,16 @@ The original flight controls are now matched to code: RIGHT/LEFT rotate through 
 
 ## Next reverse-engineering targets
 
-1. Extract the heading/velocity lookup tables into human-readable vectors.
-2. Map the world/region tile format and assign collision tile semantics.
-3. Finish the landing-to-ground / blast-off state transition.
+Completed core milestones now include the heading tables, 480×480 world format, flight charset/palette, deterministic flight reference model, and the normal flight ↔ ground round trip.
+
+Current targets:
+
+1. Reconstruct ground/on-foot controls and movement state.
+2. Resolve the special `$E9E5 == 6` return range and alternate `$E720` exit path.
+3. Assign exact semantics to the remaining collision tile classes.
 4. Identify sprite ownership for ship, shadow, projectiles and landing gear.
-5. Isolate shields, laser damage and enemy projectile logic.
-6. Decode scientist/password/computer interaction state.
-7. Extract graphics, sprites, character sets and SID assets.
-8. Build an executable behavioural test harness for the original flight equations.
-9. Implement the first modern flight vertical slice from the recovered rules.
+5. Finish laser/enemy damage behavior and test whether shields have any gameplay effect.
+6. Decode RETURN/datacard/password and scientist/computer interaction state.
+7. Reconstruct the first complete fly → land → on-foot → interact → return → takeoff vertical slice.
 
 The objective is not to port opaque 6502 code directly. The objective is to recover the game's rules, data and state transitions accurately enough to reimplement them cleanly in a modern engine.

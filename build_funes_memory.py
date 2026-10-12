@@ -10,6 +10,7 @@ docs=[
     ("project-overview","README.md"),
     ("reverse-engineering-notes","RE_NOTES.md"),
     ("flight-state","FLIGHT_STATE.md"),
+    ("transition-state","TRANSITION_STATE.md"),
     ("world-format","WORLD_FORMAT.md"),
     ("tile-graphics","TILE_GRAPHICS.md"),
     ("re-tooling","RE_TOOLING.md"),

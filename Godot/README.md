@@ -14,7 +14,10 @@ Current prototype:
 - climb/dive flight-height state
 - landing gear and landing-regime braking
 - 3×3 original landing/collision footprint
-- laser bolts and flight-to-ground transition trigger
+- laser bolts
+- recovered two-stage flight → ground transition ($F4 request, next-tick $E000 entry)
+- recovered normal ground → flight return gate and state restoration
+- deterministic land → ground → return-to-ship round trip
 - complete recovered 480×480 world available to the renderer
 - streamed world window that follows the craft
 - original flight charset decoded from $4000
@@ -32,7 +35,7 @@ Controls:
 - Left/Right or A/D: turn
 - Down/S: climb
 - Up/W: dive
-- Z: fire; when landing-ready and stopped, commit landing
+- Z: fire; when landing-ready and stopped, commit landing; in current ground-transition harness, press again at the craft to return to flight
 - Space: landing gear
 - F7: shield UI state
 - Tab: switch between the two recovered velocity table sets

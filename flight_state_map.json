@@ -1,7 +1,7 @@
 {
   "image": {
     "path": "Unpacked/playable_ram.bin",
-    "wrapped_image_sha256": "5f0fc248e0a9249e92798a2e753b32735d4e3b8674816ce6113879eaf2ce6795"
+    "sha256": "232471c51e24254873f182b865378aca60a0b171490d75c66123e007e1cdb137"
   },
   "variables": {
     "heading": {
@@ -46,7 +46,8 @@
     },
     "flight_to_ground_state": {
       "address": "0x00F4",
-      "confidence": "strong"
+      "confidence": "verified",
+      "semantics": "nonzero routes flight dispatcher to ground-mode dispatcher at 0xE000"
     },
     "projectile_x": {
       "address": "0x0779",
@@ -71,6 +72,27 @@
     "world_scroll_y": {
       "address": "0x0B41",
       "confidence": "strong"
+    },
+    "flight_raster_mode": {
+      "address": "0x00F3",
+      "confidence": "verified",
+      "flight": 1,
+      "ground": 0
+    },
+    "ground_init_guard": {
+      "address": "0xE049",
+      "confidence": "verified",
+      "semantics": "0 runs one-time ground initialization; nonzero skips to ground frame loop"
+    },
+    "ground_player_x": {
+      "address": "0x074A",
+      "confidence": "strong",
+      "semantics": "ground-mode player coordinate used by return-to-ship proximity gate"
+    },
+    "ground_player_y": {
+      "address": "0x074B",
+      "confidence": "strong",
+      "semantics": "ground-mode player coordinate used by return-to-ship proximity gate"
     }
   },
   "routines": {
@@ -87,6 +109,10 @@
     "keyboard_scan": "0x2085",
     "keyboard_dispatch": "0x20C4",
     "gear_toggle": "0x1FEB",
-    "flight_dispatcher": "0x0E30"
+    "flight_dispatcher": "0x0E30",
+    "ground_dispatcher": "0xE000",
+    "ground_enter_init": "0xE064",
+    "ground_return_to_ship": "0xEB5B",
+    "ground_exit_restore": "0xEB92"
   }
 }

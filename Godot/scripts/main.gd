@@ -124,8 +124,12 @@ func _physics_process(_delta: float) -> void:
     if events["laser"]:
         _spawn_laser()
         status_message = "Laser fired"
-    if events["landed"]:
-        status_message = "LANDED — flight-to-ground transition reached"
+    if events["ground_transition_requested"]:
+        status_message = "Landing committed — original $F4 transition flag set"
+    if events["entered_ground"]:
+        status_message = "GROUND MODE — original $E000 initialization complete"
+    if events["exited_ground"]:
+        status_message = "Returned to flight — $F4 cleared / $F3 restored"
 
     _maybe_stream_world()
     _update_bolts()
@@ -498,9 +502,12 @@ func _update_hud() -> void:
         + "Landing ready    %s\n" % ("YES" if model.landing_ready else "no")
         + "Shields          %s\n" % ("ON" if shields_on else "OFF")
         + "World position   %d, %d original units\n" % [model.world_x, model.world_y]
-        + "State            %s\n\n" % ("LANDED" if model.landed else "FLIGHT")
-        + "Arrows / WASD  turn + climb/dive\n"
-        + "Z              fire / commit landing when ready\n"
+        + "$F4 ground flag  %s\n" % ("SET" if model.ground_transition_flag else "clear")
+        + "$F3 flight mode  %s\n" % ("1" if model.flight_raster_mode else "0")
+        + "$E049 init guard %s\n" % ("SET" if model.ground_initialized else "clear")
+        + "State            %s\n\n" % ("GROUND" if model.landed else ("TRANSITION" if model.ground_transition_flag else "FLIGHT"))
+        + "Arrows / WASD  turn + climb/dive (flight)\n"
+        + "Z              fire / land / return to ship\n"
         + "SPACE          landing gear\n"
         + "F7             shields (UI state for now)\n"
         + "TAB            recovered velocity table mode\n"
