@@ -1,0 +1,92 @@
+{
+  "image": {
+    "path": "Unpacked/playable_ram.bin",
+    "wrapped_image_sha256": "5f0fc248e0a9249e92798a2e753b32735d4e3b8674816ce6113879eaf2ce6795"
+  },
+  "variables": {
+    "heading": {
+      "address": "0x0DBD",
+      "confidence": "verified",
+      "range": "0..15"
+    },
+    "flight_height": {
+      "address": "0x0778",
+      "confidence": "strong",
+      "range": "0x03..0x28"
+    },
+    "velocity_x_integer": {
+      "address": "0x0709",
+      "confidence": "verified"
+    },
+    "velocity_x_fraction": {
+      "address": "0x070A",
+      "confidence": "verified"
+    },
+    "velocity_y_integer": {
+      "address": "0x070B",
+      "confidence": "verified"
+    },
+    "velocity_y_fraction": {
+      "address": "0x070C",
+      "confidence": "verified"
+    },
+    "acceleration_step": {
+      "address": "0x1659",
+      "confidence": "verified",
+      "normal": "0x40",
+      "landing": "0x0C"
+    },
+    "landing_gear": {
+      "address": "0xCF13",
+      "confidence": "verified"
+    },
+    "landing_ready": {
+      "address": "0x10FB",
+      "confidence": "strong"
+    },
+    "flight_to_ground_state": {
+      "address": "0x00F4",
+      "confidence": "strong"
+    },
+    "projectile_x": {
+      "address": "0x0779",
+      "confidence": "strong"
+    },
+    "projectile_y": {
+      "address": "0x077A",
+      "confidence": "strong"
+    },
+    "projectile_state": {
+      "address": "0x077B",
+      "confidence": "strong"
+    },
+    "projectile_height": {
+      "address": "0x077C",
+      "confidence": "strong"
+    },
+    "world_scroll_x": {
+      "address": "0x0B40",
+      "confidence": "strong"
+    },
+    "world_scroll_y": {
+      "address": "0x0B41",
+      "confidence": "strong"
+    }
+  },
+  "routines": {
+    "joystick_read": "0x0AE5",
+    "flight_input": "0x0E65",
+    "velocity_convergence": "0x0F0D",
+    "terrain_collision": "0x0C1B",
+    "footprint_sample": "0x0BEB",
+    "landing_regime": "0x165A",
+    "height_collision_guard": "0x10BB",
+    "fire_handler": "0x10DA",
+    "projectile_update": "0x113A",
+    "apply_scroll_motion": "0x0B42",
+    "keyboard_scan": "0x2085",
+    "keyboard_dispatch": "0x20C4",
+    "gear_toggle": "0x1FEB",
+    "flight_dispatcher": "0x0E30"
+  }
+}

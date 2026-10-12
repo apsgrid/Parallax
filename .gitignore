@@ -13,3 +13,10 @@ Unpacked/*.bin
 # local caches
 __pycache__/
 *.pyc
+
+# generated reverse-engineering trace output
+mainloop_calls.txt
+flight_state_raw.txt
+flight_chain.txt
+landing_collision.txt
+playable_verify.txt

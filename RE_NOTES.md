@@ -69,7 +69,7 @@ Output:
 
 This overlay contains the embedded Parallax documentation/presentation screens.
 
-### Stage 4 - playable game LZ layer
+### Stage 4 - intermediate game LZ layer
 
 The document overlay exits via \`$080B\`.
 
@@ -125,3 +125,60 @@ These are search anchors only; code/data boundaries still need to be labelled be
 ## Method rule
 
 Do not linear-disassemble large unknown ranges and assume they are code. Parallax uses compressed overlays, data tables and self-modifying loader code. Every subsystem label should be backed by a call/reference path or runtime hardware access.
+
+
+### Stage 5 - final playable expansion
+
+**Correction to the earlier Stage 4 label:** Stage 4 is still an intermediate packed image. Its entry at \`$0801\` performs one more relocation/RLE pass before the actual playable state is available.
+
+Stage-5 bootstrap:
+- relocates source range \`$078D-$DA8C\` upward by \`$2572\`
+- compressed stream begins at \`$2E0F\`
+- decoder output begins at \`$0800\`
+- completion handoff: \`$7C00\`
+
+Encoding:
+- ordinary byte -> literal
+- \`D1 count value\` -> repeat value
+- \`D7 value\` -> repeat value 3 times
+- \`CB count\` -> repeat zero
+- \`75\` -> two zero bytes
+- \`D3 count\` -> repeat \`$2A\`
+- \`A1\` -> two \`$2A\` bytes
+- \`AF count\` -> repeat space (\`$20\`)
+
+Verified result:
+- output order \`$0800-$FFFF\`, then \`$0000-$0003\`
+- 63,492 expanded bytes
+- wrapped-image SHA-256 \`5f0fc248e0a9249e92798a2e753b32735d4e3b8674816ce6113879eaf2ce6795\`
+- canonical RAM snapshot: \`Unpacked/playable_ram.bin\`
+
+## Flight-state reconstruction
+
+Detailed labels are maintained in \`FLIGHT_STATE.md\` and \`flight_state_map.json\`.
+
+High-confidence state:
+- \`$0DBD\` — 16-step heading.
+- \`$0778\` — flight-height / vertical flight level.
+- \`$0709:$070A\` — signed fixed-point X velocity.
+- \`$070B:$070C\` — signed fixed-point Y velocity.
+- \`$1659\` — acceleration step; \`$40\` normal, \`$0C\` in landing regime.
+- \`$CF13\` — landing gear state, toggled from SPACE event handling.
+- \`$10FB\` — landing-ready / ground-transition eligibility.
+- \`$0779-$077C\` — laser/projectile state block.
+- \`$0B40/$0B41\` — scrolling/world-position accumulators.
+
+Primary routines:
+- \`$0AE5\` joystick normalizer.
+- \`$0E65\` flight input/debounce.
+- \`$0F0D\` heading-vector velocity convergence.
+- \`$0C1B\` terrain/collision classifier.
+- \`$0BEB\` 3×3 footprint sampler.
+- \`$165A\` landing-regime detector.
+- \`$10BB\` height/collision guard.
+- \`$10DA\` fire / laser / ground-transition handler.
+- \`$113A+\` projectile update.
+- \`$0B42\` applies integer motion to world-scroll accumulators.
+- \`$2085\` keyboard matrix scanner.
+
+The flight update chain is mirrored in several resident banks. A clean copy starts at \`$0E30\` and calls the routines above in stable order.
