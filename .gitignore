@@ -26,3 +26,23 @@ Godot/.godot/
 
 # Generated original world data (reconstruct locally)
 Godot/data/world_480.json
+
+# Derived C64 graphics / screenshots / live RAM captures
+Godot/generated/
+World/
+
+# Local reverse-engineering transcripts and emulator scratch
+/*.txt
+capture_*.ps1
+boot_parallax_*.ps1
+send_vice_key.ps1
+vice_*.py
+vice_*.mon
+*live*.py
+*candidate*.py
+check_world_access_copies.py
+diff_region_banks.py
+dump_live_world*.py
+extract_world_map.py
+find_world_writers.py
+trace_world_loader.py

@@ -31,6 +31,9 @@ func _check(condition: bool, message: String) -> void:
 
 func _test_heading_table() -> void:
     var m := FlightModel.new()
+    _check(m.heading == 4, "default heading matches recovered post-startup state")
+    _check(m.flight_height == 0x15, "default height matches recovered post-startup state")
+    m.heading = 0
     _check(m.target_velocity() == Vector2i(0, 2), "heading 0 recovered vector is (0,2)")
     m.heading = 4
     _check(m.target_velocity() == Vector2i(-2, 0), "heading 4 recovered vector is (-2,0)")
@@ -45,6 +48,7 @@ func _test_heading_table() -> void:
 
 func _test_input_repeat() -> void:
     var m := FlightModel.new()
+    m.heading = 0
     for i in range(3):
         m.step(0x01, false, 0)
     _check(m.heading == 0, "turn input waits for four-frame repeat threshold")

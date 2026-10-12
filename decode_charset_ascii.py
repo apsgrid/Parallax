@@ -1,0 +1,10 @@
+from pathlib import Path
+m=Path(r"E:\Projects\Parallax\Unpacked\playable_ram.bin").read_bytes()
+
+# VIC setup from corrected runtime: bank $4000-$7FFF, charset at $4000.
+for code in [0x00,0x01,0x04,0x0D,0x0E,0x0F,0x10,0x20,0x23,0x24,0x25,0x2A,0x2C,0x31,0x32,0x35,0x3C,0x43,0x44,0x48,0x4A,0x4C,0x58,0x64,0x94]:
+    b=m[0x4000+code*8:0x4000+code*8+8]
+    print(f"CODE {code:02X} bytes "+" ".join(f"{x:02X}" for x in b))
+    for row in b:
+        print("".join("##" if row&(1<<(7-i)) else "  " for i in range(8)))
+    print()

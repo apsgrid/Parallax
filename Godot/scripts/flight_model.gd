@@ -19,8 +19,8 @@ const HEADING_Y_MODE1 := [3, 3, 3, 2, 0, -2, -3, -3, -3, -3, -3, -2, 0, 2, 3, 3]
 # RIGHT, LEFT, DOWN/climb, UP/dive.
 const INPUT_REPEAT := [4, 4, 1, 1]
 
-var heading := 0
-var flight_height := 0x18
+var heading := 4
+var flight_height := 0x15
 var speed_mode := 0
 
 var vx_hi := 0
@@ -41,8 +41,8 @@ var _input_counters := [0, 0, 0, 0]
 
 
 func reset() -> void:
-    heading = 0
-    flight_height = 0x18
+    heading = 4
+    flight_height = 0x15
     speed_mode = 0
     vx_hi = 0
     vx_frac = 0x80

@@ -148,9 +148,9 @@ Encoding:
 - \`AF count\` -> repeat space (\`$20\`)
 
 Verified result:
-- output order \`$0800-$FFFF\`, then \`$0000-$0003\`
+- output range \`$0800-$FFFF\`
 - 63,488 expanded bytes
-- wrapped-image SHA-256 \`5f0fc248e0a9249e92798a2e753b32735d4e3b8674816ce6113879eaf2ce6795\`
+- SHA-256 \`232471c51e24254873f182b865378aca60a0b171490d75c66123e007e1cdb137\`
 - canonical RAM snapshot: \`Unpacked/playable_ram.bin\`
 
 ## Flight-state reconstruction

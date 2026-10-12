@@ -29,15 +29,23 @@ The address calculator at `$C176` performs the hierarchy:
 
 The scroll renderer around `$C0DB-$C43F` copies those tile codes into the alternating 40-column C64 screen buffers at `$7800` and `$7C00`.
 
-## Original spawn
+## Original viewport and player start
 
-The startup state initializes:
+The startup routine initially writes:
 - macro X: `$0707 = 2`
 - macro Y: `$0708 = 10`
 - fine X: `$0705 = 0`
 - fine Y: `$0706 = 0`
 
-This corresponds to expanded tile coordinate **(10, 50)**.
+That raw state corresponds to expanded tile coordinate **(10, 50)**, but it is not the final gameplay viewport. The game then performs 20 deliberate pre-scroll frames with Y scroll velocity `$070B = $08`. Because one character tile is 8 scroll units and one macro cell is 5 tiles, those 20 frames move the viewport upward by 20 tiles.
+
+Verified post-startup viewport origin:
+- **tile (10, 30)**
+
+The player collision routine `$0C1B` samples the craft at screen column 18, row 8 and checks a 3×3 footprint. The footprint therefore begins at world tile **(28, 38)** and its centre is approximately:
+- **player start tile (29, 39)**
+
+The Godot reference controller uses 8 original scroll units per expanded tile and anchors player displacement at tile (29, 39).
 
 ## Collision / landing
 
@@ -59,4 +67,4 @@ Exact semantic names for those classes are still being reconstructed.
 
 The generated `Godot/data/world_480.json` is deliberately ignored by Git because it contains derived original level data. The extractor and format documentation are versioned instead.
 
-The first Godot world slice is centered on the original spawn and uses the C64 tile-code classes directly for geometry and landing checks.
+The Godot renderer now streams a moving window over the full recovered 480×480 world. Player displacement is anchored at the verified start centre (29, 39), and landing checks query the original C64 tile codes directly.

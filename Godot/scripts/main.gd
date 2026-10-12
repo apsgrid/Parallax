@@ -3,20 +3,28 @@ extends Node3D
 const FlightModel = preload("res://scripts/flight_model.gd")
 
 const TILE_SIZE := 2.0
-const SIM_UNITS_PER_TILE := 16.0
+const SIM_UNITS_PER_TILE := 8.0
 const WORLD_SCALE := TILE_SIZE / SIM_UNITS_PER_TILE
 const HEIGHT_SCALE := 0.25
 const WORLD_PATH := "res://data/world_480.json"
-const SPAWN_TILE := Vector2i(10, 50)
-const REGION_MIN := Vector2i(0, 26)
-const REGION_MAX := Vector2i(74, 94)
+const INITIAL_VIEW_ORIGIN_TILE := Vector2i(10, 30)
+const PLAYER_START_TILE := Vector2i(29, 39)
+const STREAM_HALF_X := 28
+const STREAM_HALF_Y := 22
+const STREAM_REBUILD_DISTANCE := 12
 
 var model := FlightModel.new()
 var world_tiles: Array = []
+var tile_atlas_images: Array[Image] = []
+var tile_material_cache := {}
+var tile_side_material: StandardMaterial3D
+var world_root: Node3D
+var stream_center_tile := Vector2i(-9999, -9999)
 
 var ship: Node3D
 var camera: Camera3D
 var hud: Label
+var hud_panel: PanelContainer
 var gear_nodes := []
 var footprint_markers := []
 var bolts := []
@@ -32,13 +40,18 @@ var last_reset := false
 var last_mode := false
 var last_shield := false
 var last_return := false
+var last_debug_hud := false
+var last_debug_footprint := false
 
+var debug_hud_visible := false
+var debug_footprint_visible := false
 var shields_on := true
 var status_message := "Recovered C64 flight model active"
 
 
 func _ready() -> void:
     _load_world_data()
+    _load_tile_atlases()
     _build_environment()
     _build_world()
     _build_ship()
@@ -88,6 +101,19 @@ func _physics_process(_delta: float) -> void:
         status_message = "Datacard/password computer: not wired yet"
     last_return = return_now
 
+    var debug_hud_now := Input.is_key_pressed(KEY_F1)
+    if debug_hud_now and not last_debug_hud:
+        debug_hud_visible = not debug_hud_visible
+        hud_panel.visible = debug_hud_visible
+    last_debug_hud = debug_hud_now
+
+    var debug_footprint_now := Input.is_key_pressed(KEY_F2)
+    if debug_footprint_now and not last_debug_footprint:
+        debug_footprint_visible = not debug_footprint_visible
+        for marker in footprint_markers:
+            marker.visible = debug_footprint_visible
+    last_debug_footprint = debug_footprint_now
+
     var fire_now := Input.is_key_pressed(KEY_Z)
     var fire_pressed := fire_now and not last_fire
     last_fire = fire_now
@@ -101,6 +127,7 @@ func _physics_process(_delta: float) -> void:
     if events["landed"]:
         status_message = "LANDED — flight-to-ground transition reached"
 
+    _maybe_stream_world()
     _update_bolts()
     _update_visuals()
     _sample_footprint()
@@ -135,68 +162,30 @@ func _load_world_data() -> void:
         world_tiles = parsed.get("tiles", [])
 
 
+func _load_tile_atlases() -> void:
+    tile_atlas_images.clear()
+    for zone in range(6):
+        var relative_path := "res://generated/tiles_zone_%d.png" % zone
+        var image := Image.load_from_file(ProjectSettings.globalize_path(relative_path))
+        if image == null or image.is_empty():
+            push_error("Unable to load generated C64 tile atlas: " + relative_path)
+            tile_atlas_images.append(Image.create_empty(128, 128, false, Image.FORMAT_RGB8))
+        else:
+            tile_atlas_images.append(image)
+
+
 func _build_world() -> void:
-    var ground_material := _make_material(Color(0.10, 0.12, 0.11))
-    var blocker_material := _make_material(Color(0.32, 0.26, 0.20))
-    var structure_material := _make_material(Color(0.24, 0.34, 0.39))
-    var special_material := _make_material(Color(0.38, 0.30, 0.40))
-    var detail_material := _make_material(Color(0.18, 0.22, 0.20))
+    tile_side_material = _make_material(Color(0.075, 0.08, 0.09))
 
     safe_material = _make_material(Color(0.20, 0.72, 0.38, 0.68))
     safe_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
     unsafe_material = _make_material(Color(0.85, 0.25, 0.18, 0.68))
     unsafe_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 
-    var ground := MeshInstance3D.new()
-    var plane := PlaneMesh.new()
-    var region_size := Vector2(
-        float(REGION_MAX.x - REGION_MIN.x + 1) * TILE_SIZE,
-        float(REGION_MAX.y - REGION_MIN.y + 1) * TILE_SIZE
-    )
-    plane.size = region_size
-    ground.mesh = plane
-    ground.position = Vector3(
-        float(REGION_MIN.x + REGION_MAX.x - SPAWN_TILE.x * 2) * TILE_SIZE * 0.5,
-        0.0,
-        float(REGION_MIN.y + REGION_MAX.y - SPAWN_TILE.y * 2) * TILE_SIZE * 0.5
-    )
-    ground.material_override = ground_material
-    add_child(ground)
-
-    for wy in range(REGION_MIN.y, REGION_MAX.y + 1):
-        for wx in range(REGION_MIN.x, REGION_MAX.x + 1):
-            var code := _tile_code(wx, wy)
-            var local_x := float(wx - SPAWN_TILE.x) * TILE_SIZE
-            var local_z := float(wy - SPAWN_TILE.y) * TILE_SIZE
-
-            if code >= 0x0D and code <= 0x10:
-                _make_box(
-                    self,
-                    Vector3(TILE_SIZE * 0.92, 1.75, TILE_SIZE * 0.92),
-                    Vector3(local_x, 0.875, local_z),
-                    blocker_material
-                )
-            elif code >= 0x31 and code < 0x3D:
-                _make_box(
-                    self,
-                    Vector3(TILE_SIZE * 0.78, 0.85, TILE_SIZE * 0.78),
-                    Vector3(local_x, 0.425, local_z),
-                    structure_material
-                )
-            elif code == 0x48 or code == 0x58:
-                _make_box(
-                    self,
-                    Vector3(TILE_SIZE * 0.58, 1.15, TILE_SIZE * 0.58),
-                    Vector3(local_x, 0.575, local_z),
-                    special_material
-                )
-            elif code != 0x2A and code != 0x00:
-                _make_box(
-                    self,
-                    Vector3(TILE_SIZE * 0.72, 0.06, TILE_SIZE * 0.72),
-                    Vector3(local_x, 0.03, local_z),
-                    detail_material
-                )
+    world_root = Node3D.new()
+    world_root.name = "World"
+    add_child(world_root)
+    _rebuild_world_chunk(PLAYER_START_TILE)
 
     for i in range(9):
         var marker := _make_box(
@@ -205,6 +194,7 @@ func _build_world() -> void:
             Vector3.ZERO,
             unsafe_material
         )
+        marker.visible = debug_footprint_visible
         footprint_markers.append(marker)
 
 
@@ -240,7 +230,7 @@ func _build_ship() -> void:
 func _build_camera() -> void:
     camera = Camera3D.new()
     camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-    camera.size = 24.0
+    camera.size = 44.0
     camera.current = true
     add_child(camera)
 
@@ -249,9 +239,9 @@ func _build_hud() -> void:
     var canvas := CanvasLayer.new()
     add_child(canvas)
 
-    var panel := PanelContainer.new()
-    panel.position = Vector2(16, 16)
-    panel.custom_minimum_size = Vector2(520, 390)
+    hud_panel = PanelContainer.new()
+    hud_panel.position = Vector2(16, 16)
+    hud_panel.custom_minimum_size = Vector2(520, 390)
 
     var style := StyleBoxFlat.new()
     style.bg_color = Color(0.015, 0.02, 0.025, 0.84)
@@ -264,15 +254,16 @@ func _build_hud() -> void:
     style.corner_radius_top_right = 8
     style.corner_radius_bottom_left = 8
     style.corner_radius_bottom_right = 8
-    panel.add_theme_stylebox_override("panel", style)
-    canvas.add_child(panel)
+    hud_panel.add_theme_stylebox_override("panel", style)
+    hud_panel.visible = debug_hud_visible
+    canvas.add_child(hud_panel)
 
     hud = Label.new()
     hud.custom_minimum_size = Vector2(500, 370)
     hud.add_theme_font_size_override("font_size", 17)
     hud.add_theme_color_override("font_color", Color(0.86, 0.93, 0.96))
     hud.add_theme_constant_override("line_spacing", 3)
-    panel.add_child(hud)
+    hud_panel.add_child(hud)
 
 
 func _sample_footprint() -> int:
@@ -298,8 +289,8 @@ func _sample_footprint() -> int:
 
 
 func _is_landing_tile(x: int, y: int) -> bool:
-    var wx := SPAWN_TILE.x + x
-    var wy := SPAWN_TILE.y + y
+    var wx := PLAYER_START_TILE.x + x
+    var wy := PLAYER_START_TILE.y + y
     var code := _tile_code(wx, wy)
     return not (code >= 0x0D and code <= 0x10)
 
@@ -311,6 +302,128 @@ func _tile_code(wx: int, wy: int) -> int:
     if typeof(row) != TYPE_ARRAY or wx < 0 or wx >= row.size():
         return 0x0D
     return int(row[wx])
+
+
+func _zone_for_world_y(wy: int) -> int:
+    var macro_y := wy / 5
+    if macro_y <= 0:
+        return 0
+    return clampi((macro_y - 1) / 18, 0, 5)
+
+
+func _tile_is_visually_blank(code: int) -> bool:
+    # Verified all-zero glyphs in the recovered $4000 charset.
+    return code in [
+        0x0D, 0x0E, 0x0F, 0x10, 0x20, 0x44, 0x5D,
+        0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87,
+        0x88, 0x89, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F, 0x90,
+        0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98,
+        0x99, 0x9A, 0x9B, 0x9C, 0xFE, 0xFF
+    ]
+
+
+func _current_world_tile() -> Vector2i:
+    return Vector2i(
+        PLAYER_START_TILE.x + roundi(float(model.world_x) / SIM_UNITS_PER_TILE),
+        PLAYER_START_TILE.y + roundi(float(model.world_y) / SIM_UNITS_PER_TILE)
+    )
+
+
+func _maybe_stream_world() -> void:
+    var current := _current_world_tile()
+    if abs(current.x - stream_center_tile.x) >= STREAM_REBUILD_DISTANCE:
+        _rebuild_world_chunk(current)
+        return
+    if abs(current.y - stream_center_tile.y) >= STREAM_REBUILD_DISTANCE:
+        _rebuild_world_chunk(current)
+
+
+func _rebuild_world_chunk(center: Vector2i) -> void:
+    stream_center_tile = center
+
+    if world_root != null:
+        for child in world_root.get_children():
+            child.queue_free()
+
+    var min_x := maxi(0, center.x - STREAM_HALF_X)
+    var max_x := mini(479, center.x + STREAM_HALF_X)
+    var min_y := maxi(0, center.y - STREAM_HALF_Y)
+    var max_y := mini(479, center.y + STREAM_HALF_Y)
+
+    for wy in range(min_y, max_y + 1):
+        for wx in range(min_x, max_x + 1):
+            var code := _tile_code(wx, wy)
+            if _tile_is_visually_blank(code):
+                continue
+
+            var local_x := float(wx - PLAYER_START_TILE.x) * TILE_SIZE
+            var local_z := float(wy - PLAYER_START_TILE.y) * TILE_SIZE
+            var zone := _zone_for_world_y(wy)
+            var tile_material := _tile_material(code, zone)
+            var tile_height := _tile_visual_height(code)
+
+            _make_world_tile(
+                Vector3(local_x, 0.0, local_z),
+                tile_height,
+                tile_material
+            )
+
+
+func _tile_visual_height(code: int) -> float:
+    # Only collision classes verified in the original classifier get
+    # meaningful extrusion. Keep the relief shallow so the C64 artwork
+    # remains the dominant visual signal.
+    if code >= 0x31 and code <= 0x3C:
+        return 0.20
+    if code == 0x48:
+        return 0.32
+    if code == 0x58:
+        return 0.42
+    return 0.035
+
+
+func _tile_material(code: int, zone: int) -> StandardMaterial3D:
+    var key := zone * 256 + code
+    if tile_material_cache.has(key):
+        return tile_material_cache[key]
+
+    var atlas_image: Image = tile_atlas_images[zone]
+    var region := Rect2i(
+        (code & 0x0F) * 8,
+        (code >> 4) * 8,
+        8,
+        8
+    )
+    var glyph_image := atlas_image.get_region(region)
+    var glyph_texture := ImageTexture.create_from_image(glyph_image)
+
+    var material := StandardMaterial3D.new()
+    material.albedo_texture = glyph_texture
+    material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+    material.texture_repeat = false
+    material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+    material.roughness = 0.88
+    material.metallic = 0.0
+    tile_material_cache[key] = material
+    return material
+
+
+func _make_world_tile(origin: Vector3, height: float, material: StandardMaterial3D) -> void:
+    if height > 0.05:
+        _make_box(
+            world_root,
+            Vector3(TILE_SIZE, height, TILE_SIZE),
+            origin + Vector3(0.0, height * 0.5, 0.0),
+            tile_side_material
+        )
+
+    var top := MeshInstance3D.new()
+    var mesh := PlaneMesh.new()
+    mesh.size = Vector2(TILE_SIZE, TILE_SIZE)
+    top.mesh = mesh
+    top.position = origin + Vector3(0.0, maxf(height, 0.025) + 0.003, 0.0)
+    top.material_override = material
+    world_root.add_child(top)
 
 
 func _update_visuals() -> void:
@@ -326,7 +439,7 @@ func _update_visuals() -> void:
         leg.visible = model.landing_gear
 
     var focus := ship.position
-    camera.position = focus + Vector3(12.0, 18.0, 12.0)
+    camera.position = focus + Vector3(8.0, 34.0, 8.0)
     camera.look_at(focus, Vector3.UP)
 
 
@@ -391,7 +504,9 @@ func _update_hud() -> void:
         + "SPACE          landing gear\n"
         + "F7             shields (UI state for now)\n"
         + "TAB            recovered velocity table mode\n"
-        + "R              reset\n\n"
+        + "R              reset\n"
+        + "F1             debug HUD\n"
+        + "F2             landing footprint\n\n"
         + status_message
     )
 

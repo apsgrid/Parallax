@@ -14,9 +14,9 @@ Stage 5 expands the previous image into essentially the complete C64 address spa
 
 - Decompressor entry after stage 4: \`$0801\`
 - Stage-5 compressed stream after relocation: \`$2E0F-$FFFF\`
-- Playable output order: \`$0800-$FFFF\`, then \`$0000-$0003\`
+- Playable output range: \`$0800-$FFFF\`
 - Output bytes: 63,488
-- Wrapped-image SHA-256: \`5f0fc248e0a9249e92798a2e753b32735d4e3b8674816ce6113879eaf2ce6795\`
+- SHA-256: \`232471c51e24254873f182b865378aca60a0b171490d75c66123e007e1cdb137\`
 - Post-decompression handoff: \`$7C00\`
 
 The working complete RAM snapshot is \`Unpacked/playable_ram.bin\`.
