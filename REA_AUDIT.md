@@ -30,23 +30,24 @@ Generated graph JSON remains local under `rea_audit/`.
 ## REA reconstruction obligation ledger
 
 Authenticated review Evidence was generated with REA's own `createEvidence()` and `createEvidenceBundle()` implementation.
-- ledger ID: `rol_8cbb55ffe466198ab1badb9698bf3539bdb0ed8e17bbdf0aa80e7a3ada66296d`
-- closure digest: `882f390a92401b9ce1c15d39f05231b8e1086a489738d75a242d1845b578fe7b`
+- ledger ID: `rol_5f09944f354c06730418a55d0349faf1543aa2425a3457fa792b58d6b03f8d7a`
+- closure digest: `71702e9390250a0e8fcf969dda754f6dc405abdb6799c037ff313ec82a69e8f4`
 - status: `unknown` (intentionally conservative)
-- required obligations: 5
+- required obligations: 6
 - verified: 0
-- required open: 5
+- required open: 6
 
 Tracked obligations:
 1. shield behavior beyond toggle/status presentation;
 2. RETURN/datacard/password computer behavior;
 3. exact collision-tile taxonomy;
 4. special/alternate flight-ground paths beyond the verified normal round trip;
-5. exact ship/shadow projection ownership.
+5. byte-perfect ground fine-scroll collision alignment and `$C1-$C3 -> $E444` submode semantics;
+6. exact ship/shadow projection ownership.
 
 ## Funes validation
 
-Current project memory source validates as 21 turns / 57 chunks / 0 rejected / 0 duplicate IDs before indexing.
+Current project memory source validates as 23 turns / 70 chunks / 0 rejected / 0 duplicate IDs before indexing.
 Recall checks correctly retrieved:
 - corrected Stage-5 range, byte count and SHA-256;
 - post-startup viewport/player coordinates;
@@ -82,3 +83,20 @@ Godot reference tests now exercise the two-stage entry, ground state, rejected +
 Remaining open transition evidence is limited to:
 - the `$E9E5 == 6` special case that widens the negative X return bound to -27;
 - the alternate `$E720` exit/control path.
+
+## Second-pass finding: on-foot controls
+
+The outdoor ground-control loop is now reconstructed and implemented as a separate deterministic `GroundModel`.
+
+Verified rules include:
+- CIA1 joystick normalization with the same logical direction bits as flight;
+- strict RIGHT → LEFT → DOWN → UP direction priority;
+- blocked-direction fall-through;
+- one-pixel accepted movement;
+- inverse scroll/craft deltas;
+- exact 17-character passable whitelist;
+- four-move walk-animation cadence and exact `$50-$5B` sprite frames;
+- `$074A/$074B` fixed landing anchor versus mutable `$E060/$E05F` ground-relative coordinate roles;
+- `$C1-$C3` blocked RIGHT contact branches into the secondary ground submode at `$E444`.
+
+The Godot scene now renders the recovered ground sprite frames and uses the recovered collision semantics. The modern expanded-world collision bridge remains explicitly provisional until `$0703-$0708` fine-scroll/tile/macro state is modeled byte-for-byte.

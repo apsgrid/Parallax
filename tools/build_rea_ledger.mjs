@@ -45,6 +45,15 @@ const findings = [
     next: ["Determine the player-facing meaning of the $E9E5==6 special return range.", "Trace the $E720 alternate exit path to its triggering interaction/state.", "Capture one controlled original VICE round trip when the ground controller is reconstructed."]
   },
   {
+    id: "ground.fine-scroll-collision",
+    title: "Verify byte-perfect ground collision alignment and special interior submode semantics",
+    family: "ground-control",
+    location: "$E280/$E2FC screen sampler; $C1-$C3 -> $E444",
+    finding: "Ground input, direction priority, one-pixel movement, inverse scrolling, the 17-code passable whitelist and sprite animation are reconstructed and tested. The Godot scene currently bridges modern world coordinates to the expanded map provisionally; exact C64 fine-scroll/screen-buffer collision timing and the semantic identities of $C1/$C2/$C3 remain unverified.",
+    sources: ["GROUND_STATE.md", "Godot/scripts/ground_model.gd", "Godot/tests/test_ground_model.gd", "trace_ground_controls.py", "trace_ground_special.py", "trace_ground_submode.py"],
+    next: ["Model $0703-$0708 fine-scroll/tile/macro state directly across ground movement.", "Compare the modeled four sampled screen codes against reconstructed world data at known states.", "Identify the semantic roles and exit condition of the $E444 secondary ground/interior submode."]
+  },
+  {
     id: "rendering.ship-shadow-ownership",
     title: "Resolve exact sprite ownership and altitude projection semantics",
     family: "rendering-projection",

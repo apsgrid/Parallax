@@ -1,6 +1,8 @@
 class_name ParallaxFlightModel
 extends RefCounted
 
+const GroundModel = preload("res://scripts/ground_model.gd")
+
 const HEIGHT_MIN := 0x03
 const HEIGHT_MAX := 0x28
 const LANDING_HEIGHT := 0x15
@@ -49,6 +51,7 @@ var ground_initialized := false
 # $EB5B accepts the normal return-to-ship path only inside -7..+7.
 var ground_player_offset := Vector2i.ZERO
 var ground_entry_world := Vector2i.ZERO
+var ground_model := GroundModel.new()
 
 var _input_counters := [0, 0, 0, 0]
 
@@ -73,6 +76,7 @@ func reset() -> void:
     ground_initialized = false
     ground_player_offset = Vector2i.ZERO
     ground_entry_world = Vector2i.ZERO
+    ground_model.reset()
     _input_counters = [0, 0, 0, 0]
 
 
@@ -84,12 +88,22 @@ func toggle_speed_mode() -> void:
     speed_mode = 1 - speed_mode
 
 
-func step(input_bits: int, fire_pressed: bool, safe_cells: int) -> Dictionary:
+func step(
+    input_bits: int,
+    fire_pressed: bool,
+    safe_cells: int,
+    ground_blocked_bits: int = 0,
+    ground_right_contact_code: int = -1
+) -> Dictionary:
     var events := {
         "laser": false,
         "ground_transition_requested": false,
         "entered_ground": false,
         "exited_ground": false,
+        "ground_moved": false,
+        "ground_move_delta": Vector2i.ZERO,
+        "ground_scroll_delta": Vector2i.ZERO,
+        "ground_special_interaction": false,
     }
 
     # The flight dispatcher tests $F4 before running any flight update.
@@ -100,6 +114,17 @@ func step(input_bits: int, fire_pressed: bool, safe_cells: int) -> Dictionary:
             _enter_ground_mode()
             events["entered_ground"] = true
             return events
+
+        var ground_events: Dictionary = ground_model.step(
+            input_bits,
+            ground_blocked_bits,
+            ground_right_contact_code
+        )
+        ground_player_offset = ground_model.player_offset
+        events["ground_moved"] = ground_events["moved"]
+        events["ground_move_delta"] = ground_events["move_delta"]
+        events["ground_scroll_delta"] = ground_events["scroll_delta"]
+        events["ground_special_interaction"] = ground_events["special_right_interaction"]
 
         if fire_pressed and _can_return_to_ship():
             _exit_ground_mode()
@@ -162,6 +187,7 @@ func _enter_ground_mode() -> void:
     flight_raster_mode = false
     landed = true
     ground_entry_world = Vector2i(world_x, world_y)
+    ground_model.reset()
     ground_player_offset = Vector2i.ZERO
     vx_hi = 0
     vy_hi = 0
@@ -177,11 +203,11 @@ func _can_return_to_ship() -> bool:
 
 
 func _exit_ground_mode() -> void:
-    # $EB92-$EBD0 temporarily feeds the player-to-craft delta through the
-    # scroll update before restoring the stored craft position and flight
-    # mode. Preserve the equivalent displacement in our reference world.
-    world_x += ground_player_offset.x
-    world_y += ground_player_offset.y
+    # $EB92-$EBD0 feeds the remaining player-to-craft delta through the
+    # same scroll updater used during walking. The deltas cancel and flight
+    # resumes at the original landing world position.
+    world_x = ground_entry_world.x
+    world_y = ground_entry_world.y
     vx_hi = 0
     vy_hi = 0
 

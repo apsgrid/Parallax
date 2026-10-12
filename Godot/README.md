@@ -17,7 +17,11 @@ Current prototype:
 - laser bolts
 - recovered two-stage flight → ground transition ($F4 request, next-tick $E000 entry)
 - recovered normal ground → flight return gate and state restoration
-- deterministic land → ground → return-to-ship round trip
+- deterministic land → ground → walk → return-to-ship round trip
+- recovered on-foot joystick priority, one-pixel movement and inverse scrolling
+- exact 17-code on-foot passable-character whitelist
+- recovered on-foot walk animation using the original C64 sprite frames $50-$5B
+- provisional expanded-world collision bridge (exact C64 fine-scroll alignment still pending)
 - complete recovered 480×480 world available to the renderer
 - streamed world window that follows the craft
 - original flight charset decoded from $4000
@@ -32,10 +36,9 @@ Verified initial geometry:
 - one expanded world tile = 8 original scroll units
 
 Controls:
-- Left/Right or A/D: turn
-- Down/S: climb
-- Up/W: dive
-- Z: fire; when landing-ready and stopped, commit landing; in current ground-transition harness, press again at the craft to return to flight
+- In flight: Left/Right or A/D turn; Down/S climbs; Up/W dives
+- On foot: Arrows/WASD use the recovered RIGHT → LEFT → DOWN → UP priority and one-pixel movement
+- Z: fire; when landing-ready and stopped, commit landing; on foot at the craft, return to flight
 - Space: landing gear
 - F7: shield UI state
 - Tab: switch between the two recovered velocity table sets

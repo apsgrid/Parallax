@@ -68,3 +68,16 @@ Exact semantic names for those classes are still being reconstructed.
 The generated `Godot/data/world_480.json` is deliberately ignored by Git because it contains derived original level data. The extractor and format documentation are versioned instead.
 
 The Godot renderer now streams a moving window over the full recovered 480×480 world. Player displacement is anchored at the verified start centre (29, 39), and landing checks query the original C64 tile codes directly.
+
+## Scroll accumulator sign
+
+The scroll updater at `$C1FD` adds integer X/Y velocity `$0709/$070B` into fine scroll `$0703/$0704`.
+
+When a positive fine-scroll value wraps past 7, the normalization routines `$C00E/$C03F` subtract 8 from the fine value and **decrement** the corresponding tile offset `$0705/$0706`. Tile-offset underflow then decrements macro coordinate `$0707/$0708`.
+
+Therefore the world-coordinate relationship is:
+
+- positive C64 scroll accumulation -> negative expanded-world displacement;
+- negative C64 scroll accumulation -> positive expanded-world displacement.
+
+The Godot renderer now preserves `world_x/world_y` as C64 scroll accumulators but converts them to modern world position with the opposite sign. Ground player displacement is then added intuitively on top of the landed world position.

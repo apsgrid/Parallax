@@ -1,0 +1,145 @@
+{
+  "image": {
+    "path": "Unpacked/playable_ram.bin",
+    "sha256": "232471c51e24254873f182b865378aca60a0b171490d75c66123e007e1cdb137"
+  },
+  "input_bits": {
+    "right": 1,
+    "left": 2,
+    "down": 4,
+    "up": 8,
+    "fire": 16
+  },
+  "variables": {
+    "facing": {
+      "address": "0xE048",
+      "confidence": "verified",
+      "right": 1,
+      "left": 2,
+      "down": 3,
+      "up": 4
+    },
+    "move_x": {
+      "address": "0xE062",
+      "confidence": "verified"
+    },
+    "move_y": {
+      "address": "0xE063",
+      "confidence": "verified"
+    },
+    "animation_tick": {
+      "address": "0xE046",
+      "confidence": "verified"
+    },
+    "animation_phase": {
+      "address": "0xE047",
+      "confidence": "verified"
+    },
+    "sprite_frame": {
+      "address": "0xE05E",
+      "confidence": "verified"
+    },
+    "anchor_x": {
+      "address": "0x074A",
+      "confidence": "verified"
+    },
+    "anchor_y": {
+      "address": "0x074B",
+      "confidence": "verified"
+    },
+    "relative_x": {
+      "address": "0xE060",
+      "confidence": "verified"
+    },
+    "relative_y": {
+      "address": "0xE05F",
+      "confidence": "verified"
+    },
+    "blocked_right": {
+      "address": "0xE2F8",
+      "confidence": "verified"
+    },
+    "blocked_left": {
+      "address": "0xE2F9",
+      "confidence": "verified"
+    },
+    "blocked_down": {
+      "address": "0xE2FA",
+      "confidence": "verified"
+    },
+    "blocked_up": {
+      "address": "0xE2FB",
+      "confidence": "verified"
+    }
+  },
+  "routines": {
+    "joystick_read": "0xE516",
+    "movement": "0xE15B",
+    "apply_motion": "0xE216",
+    "sprite_frame_write": "0xE271",
+    "collision_sample": "0xE280",
+    "collision_classify": "0xE2FC",
+    "special_right_submode": "0xE444",
+    "landing_region_proximity": "0xEDC9",
+    "return_to_ship": "0xEB5B"
+  },
+  "passable_tile_codes": [
+    "0xC0",
+    "0xDE",
+    "0xDF",
+    "0x1F",
+    "0x4D",
+    "0x80",
+    "0x81",
+    "0x82",
+    "0x83",
+    "0x84",
+    "0x85",
+    "0x86",
+    "0x87",
+    "0x88",
+    "0x89",
+    "0x1B",
+    "0x2A"
+  ],
+  "animation": {
+    "idle": {
+      "right": "0x58",
+      "left": "0x59",
+      "down": "0x53",
+      "up": "0x52"
+    },
+    "walk": {
+      "right": [
+        "0x56",
+        "0x58",
+        "0x57",
+        "0x58"
+      ],
+      "left": [
+        "0x5A",
+        "0x59",
+        "0x5B",
+        "0x59"
+      ],
+      "down": [
+        "0x54",
+        "0x53",
+        "0x55",
+        "0x53"
+      ],
+      "up": [
+        "0x50",
+        "0x52",
+        "0x51",
+        "0x52"
+      ]
+    },
+    "phase_period_accepted_moves": 4
+  },
+  "open": [
+    "Exact semantic names for C1/C2/C3 special right-contact codes",
+    "Exact purpose/exit semantics of the E444 secondary ground submode",
+    "Byte-perfect modern world to C64 fine-scroll collision bridge"
+  ]
+}

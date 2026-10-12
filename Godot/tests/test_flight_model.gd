@@ -1,6 +1,7 @@
 extends SceneTree
 
 const FlightModel = preload("res://scripts/flight_model.gd")
+const GroundModel = preload("res://scripts/ground_model.gd")
 
 var failures := 0
 
@@ -106,16 +107,24 @@ func _test_ground_round_trip() -> void:
     m.step(0, true, 9)
     m.step(0, false, 9)
 
-    m.ground_player_offset = Vector2i(8, 0)
+    for i in range(8):
+        m.step(GroundModel.RIGHT, false, 9)
+    _check(m.ground_player_offset == Vector2i(8, 0), "integrated ground model reaches +8 X offset")
+
     var events := m.step(0, true, 9)
     _check(not events["exited_ground"] and m.landed, "return-to-ship gate rejects +8 X offset")
 
-    m.ground_player_offset = Vector2i(3, -2)
+    for i in range(5):
+        m.step(GroundModel.LEFT, false, 9)
+    m.step(GroundModel.UP, false, 9)
+    m.step(GroundModel.UP, false, 9)
+    _check(m.ground_player_offset == Vector2i(3, -2), "integrated ground walking returns inside the craft gate")
+
     events = m.step(0, true, 9)
     _check(events["exited_ground"] and not m.landed, "FIRE near stored craft position returns to flight")
     _check(not m.ground_transition_flag and m.flight_raster_mode, "return clears $F4-equivalent state and restores $F3-equivalent flight mode")
     _check(not m.ground_initialized, "return clears the $E049-equivalent initialization guard")
-    _check(m.world_x == 103 and m.world_y == 198, "return path applies player-to-craft scroll realignment")
+    _check(m.world_x == 100 and m.world_y == 200, "return path realigns exactly to the landing world position")
 
 
 func _test_laser_event() -> void:

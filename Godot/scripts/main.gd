@@ -1,6 +1,7 @@
 extends Node3D
 
 const FlightModel = preload("res://scripts/flight_model.gd")
+const GroundModel = preload("res://scripts/ground_model.gd")
 
 const TILE_SIZE := 2.0
 const SIM_UNITS_PER_TILE := 8.0
@@ -22,6 +23,8 @@ var world_root: Node3D
 var stream_center_tile := Vector2i(-9999, -9999)
 
 var ship: Node3D
+var ground_player: Sprite3D
+var ground_sprite_textures := {}
 var camera: Camera3D
 var hud: Label
 var hud_panel: PanelContainer
@@ -52,9 +55,11 @@ var status_message := "Recovered C64 flight model active"
 func _ready() -> void:
     _load_world_data()
     _load_tile_atlases()
+    _load_ground_sprites()
     _build_environment()
     _build_world()
     _build_ship()
+    _build_ground_player()
     _build_camera()
     _build_hud()
     _update_visuals()
@@ -118,8 +123,21 @@ func _physics_process(_delta: float) -> void:
     var fire_pressed := fire_now and not last_fire
     last_fire = fire_now
 
+    var ground_blocked_bits := 0
+    var ground_right_contact_code := -1
+    if model.ground_transition_flag and model.ground_initialized:
+        var collision := _ground_collision_bridge()
+        ground_blocked_bits = int(collision["blocked_bits"])
+        ground_right_contact_code = int(collision["right_code"])
+
     var safe_cells := _sample_footprint()
-    var events: Dictionary = model.step(input_bits, fire_pressed, safe_cells)
+    var events: Dictionary = model.step(
+        input_bits,
+        fire_pressed,
+        safe_cells,
+        ground_blocked_bits,
+        ground_right_contact_code
+    )
 
     if events["laser"]:
         _spawn_laser()
@@ -130,6 +148,10 @@ func _physics_process(_delta: float) -> void:
         status_message = "GROUND MODE — original $E000 initialization complete"
     if events["exited_ground"]:
         status_message = "Returned to flight — $F4 cleared / $F3 restored"
+    if events["ground_moved"]:
+        status_message = "ON FOOT — recovered one-pixel movement"
+    if events["ground_special_interaction"]:
+        status_message = "Ground special contact $C1-$C3 — handler $E444 not reconstructed yet"
 
     _maybe_stream_world()
     _update_bolts()
@@ -176,6 +198,19 @@ func _load_tile_atlases() -> void:
             tile_atlas_images.append(Image.create_empty(128, 128, false, Image.FORMAT_RGB8))
         else:
             tile_atlas_images.append(image)
+
+
+
+
+func _load_ground_sprites() -> void:
+    ground_sprite_textures.clear()
+    for frame in range(0x50, 0x5C):
+        var relative_path := "res://generated/ground_sprites/ground_%02X.png" % frame
+        var image := Image.load_from_file(ProjectSettings.globalize_path(relative_path))
+        if image == null or image.is_empty():
+            push_error("Unable to load generated C64 ground sprite: " + relative_path)
+            continue
+        ground_sprite_textures[frame] = ImageTexture.create_from_image(image)
 
 
 func _build_world() -> void:
@@ -231,6 +266,21 @@ func _build_ship() -> void:
     laser_material.emission_energy_multiplier = 4.0
 
 
+
+
+func _build_ground_player() -> void:
+    ground_player = Sprite3D.new()
+    ground_player.name = "GroundPlayer"
+    ground_player.pixel_size = WORLD_SCALE
+    ground_player.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+    ground_player.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+    ground_player.shaded = false
+    ground_player.visible = false
+    if ground_sprite_textures.has(0x58):
+        ground_player.texture = ground_sprite_textures[0x58]
+    add_child(ground_player)
+
+
 func _build_camera() -> void:
     camera = Camera3D.new()
     camera.projection = Camera3D.PROJECTION_ORTHOGONAL
@@ -271,8 +321,10 @@ func _build_hud() -> void:
 
 
 func _sample_footprint() -> int:
-    var center_x := roundi(float(model.world_x) / SIM_UNITS_PER_TILE)
-    var center_y := roundi(float(model.world_y) / SIM_UNITS_PER_TILE)
+    # $C1FD adds velocity to fine scroll, while wrap normalization moves
+    # the world tile index in the opposite direction.
+    var center_x := floori(float(-model.world_x) / SIM_UNITS_PER_TILE)
+    var center_y := floori(float(-model.world_y) / SIM_UNITS_PER_TILE)
     var safe_count := 0
     var marker_index := 0
 
@@ -327,10 +379,51 @@ func _tile_is_visually_blank(code: int) -> bool:
 
 
 func _current_world_tile() -> Vector2i:
+    if model.landed:
+        return _ground_player_world_tile()
     return Vector2i(
-        PLAYER_START_TILE.x + roundi(float(model.world_x) / SIM_UNITS_PER_TILE),
-        PLAYER_START_TILE.y + roundi(float(model.world_y) / SIM_UNITS_PER_TILE)
+        PLAYER_START_TILE.x + floori(float(-model.world_x) / SIM_UNITS_PER_TILE),
+        PLAYER_START_TILE.y + floori(float(-model.world_y) / SIM_UNITS_PER_TILE)
     )
+
+
+func _ground_player_world_tile() -> Vector2i:
+    var px := -model.ground_entry_world.x + model.ground_model.player_offset.x
+    var py := -model.ground_entry_world.y + model.ground_model.player_offset.y
+    return Vector2i(
+        PLAYER_START_TILE.x + floori(float(px) / SIM_UNITS_PER_TILE),
+        PLAYER_START_TILE.y + floori(float(py) / SIM_UNITS_PER_TILE)
+    )
+
+
+func _ground_collision_bridge() -> Dictionary:
+    # The recovered collision classifier and passable-code set are exact.
+    # This bridge maps the modern world coordinate back to the expanded
+    # world grid. Fine-scroll equivalence to the C64 screen sampler is still
+    # a verification target, so keep this boundary explicit.
+    var center := _ground_player_world_tile()
+    var directions := [
+        [GroundModel.RIGHT, Vector2i(1, 0)],
+        [GroundModel.LEFT, Vector2i(-1, 0)],
+        [GroundModel.DOWN, Vector2i(0, 1)],
+        [GroundModel.UP, Vector2i(0, -1)],
+    ]
+
+    var blocked_bits := 0
+    var right_code := -1
+    for entry in directions:
+        var bit: int = entry[0]
+        var delta: Vector2i = entry[1]
+        var code := _tile_code(center.x + delta.x, center.y + delta.y)
+        if bit == GroundModel.RIGHT:
+            right_code = code
+        if not GroundModel.is_passable_tile(code):
+            blocked_bits |= bit
+
+    return {
+        "blocked_bits": blocked_bits,
+        "right_code": right_code,
+    }
 
 
 func _maybe_stream_world() -> void:
@@ -433,16 +526,27 @@ func _make_world_tile(origin: Vector3, height: float, material: StandardMaterial
 func _update_visuals() -> void:
     var y_height := 0.44 if model.landed else 1.0 + float(model.flight_height - FlightModel.HEIGHT_MIN) * HEIGHT_SCALE
     ship.position = Vector3(
-        float(model.world_x) * WORLD_SCALE,
+        float(-model.world_x) * WORLD_SCALE,
         y_height,
-        float(model.world_y) * WORLD_SCALE
+        float(-model.world_y) * WORLD_SCALE
     )
     ship.rotation.y = -float(model.heading) * TAU / 16.0
 
     for leg in gear_nodes:
         leg.visible = model.landing_gear
 
-    var focus := ship.position
+    ground_player.visible = model.landed
+    if model.landed:
+        ground_player.position = ship.position + Vector3(
+            float(model.ground_model.player_offset.x) * WORLD_SCALE,
+            0.65,
+            float(model.ground_model.player_offset.y) * WORLD_SCALE
+        )
+        var frame := model.ground_model.frame_code
+        if ground_sprite_textures.has(frame):
+            ground_player.texture = ground_sprite_textures[frame]
+
+    var focus := ground_player.position if model.landed else ship.position
     camera.position = focus + Vector3(8.0, 34.0, 8.0)
     camera.look_at(focus, Vector3.UP)
 
@@ -501,7 +605,8 @@ func _update_hud() -> void:
         + "Footprint        %d / 9 landing cells\n" % model.footprint_safe_cells
         + "Landing ready    %s\n" % ("YES" if model.landing_ready else "no")
         + "Shields          %s\n" % ("ON" if shields_on else "OFF")
-        + "World position   %d, %d original units\n" % [model.world_x, model.world_y]
+        + "Scroll accum      %d, %d original units\n" % [model.world_x, model.world_y]
+        + "World tile        %d, %d\n" % [_current_world_tile().x, _current_world_tile().y]
         + "$F4 ground flag  %s\n" % ("SET" if model.ground_transition_flag else "clear")
         + "$F3 flight mode  %s\n" % ("1" if model.flight_raster_mode else "0")
         + "$E049 init guard %s\n" % ("SET" if model.ground_initialized else "clear")

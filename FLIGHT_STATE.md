@@ -256,7 +256,7 @@ If no projectile is currently active, the routine initializes:
 
 ## Rendering/projection anchors
 
-### $0748/$0749 and $074A/$074B (STRONG)
+### $0748/$0749 and $074A/$074B (STRONG in flight; VERIFIED reuse in ground mode)
 
 Initialized as paired coordinate sets.
 
@@ -265,6 +265,8 @@ Routine \`$1094\` derives the second pair from the first plus \`$0778\`:
 - the other adds height.
 
 This is consistent with the ship/shadow or height-projection relationship. Exact sprite ownership still needs VIC sprite-pointer tracing.
+
+Ground mode reuses the same addresses differently: `$E064` copies `$0748/$0749` into fixed landing anchor `$074A/$074B`, while `$E216` subsequently updates `$0748/$0749` as the inverse walking/scroll coordinate. See `GROUND_STATE.md`.
 
 ## Remake implementation implications
 
