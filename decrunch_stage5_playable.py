@@ -3,10 +3,12 @@ import hashlib,json
 base=Path(r"E:\Projects\Parallax\Unpacked")
 mem=bytearray((base/"final_game_ram.bin").read_bytes())
 
-# Stage 5 relocation: each page copy happens after pre-decrementing the high bytes.
-# Source bases D98D..078D -> destination bases FEFF..2CFF (constant delta 0x2572).
+# Stage 5 relocation is overlapping. The 6502 copies high pages downward;
+# preserve that behaviour by reading from an immutable snapshot.
+# Source bases D98D..078D -> destination bases FEFF..2CFF (delta 0x2572).
+source_snapshot=bytes(mem)
 for a in range(0x078D,0xDA8D):
-    mem[a+0x2572]=mem[a]
+    mem[a+0x2572]=source_snapshot[a]
 
 source=0x2E0F
 dest=0x0800
@@ -32,19 +34,19 @@ try:
     while True:
         b=rb()
         if b==0xD1:
-            n=rb(); v=rb(); stats["generic_runs"]+=1; wb(v,n)
+            n=rb() or 256; v=rb(); stats["generic_runs"]+=1; wb(v,n)
         elif b==0xD7:
             v=rb(); stats["triples"]+=1; wb(v,3)
         elif b==0xCB:
-            n=rb(); stats["zero_runs"]+=1; wb(0,n)
+            n=rb() or 256; stats["zero_runs"]+=1; wb(0,n)
         elif b==0x75:
             stats["zero_pairs"]+=1; wb(0,2)
         elif b==0xD3:
-            n=rb(); stats["star_runs"]+=1; wb(0x2A,n)
+            n=rb() or 256; stats["star_runs"]+=1; wb(0x2A,n)
         elif b==0xA1:
             stats["star_pairs"]+=1; wb(0x2A,2)
         elif b==0xAF:
-            n=rb(); stats["space_runs"]+=1; wb(0x20,n)
+            n=rb() or 256; stats["space_runs"]+=1; wb(0x20,n)
         else:
             stats["literals"]+=1; wb(b)
 except StopIteration:

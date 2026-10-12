@@ -23,3 +23,6 @@ playable_verify.txt
 
 # Godot generated state
 Godot/.godot/
+
+# Generated original world data (reconstruct locally)
+Godot/data/world_480.json

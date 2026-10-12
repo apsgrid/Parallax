@@ -3,21 +3,20 @@
   "compressed_start": 11791,
   "compressed_end": 65535,
   "output_start": 2048,
-  "output_end": 3,
+  "output_end": 65535,
   "entry": 31744,
   "stats": {
     "input_bytes": 53745,
-    "output_bytes": 63492,
-    "generic_runs": 342,
-    "triples": 447,
-    "zero_runs": 41,
-    "zero_pairs": 76,
-    "star_runs": 220,
-    "star_pairs": 80,
-    "space_runs": 80,
-    "literals": 50986
+    "output_bytes": 63488,
+    "generic_runs": 534,
+    "triples": 548,
+    "zero_runs": 270,
+    "zero_pairs": 510,
+    "star_runs": 114,
+    "star_pairs": 56,
+    "space_runs": 121,
+    "literals": 49470
   },
-  "sha256": "5f0fc248e0a9249e92798a2e753b32735d4e3b8674816ce6113879eaf2ce6795",
-  "output_end_wrapped": 3,
-  "output_bytes": 63492
+  "sha256": "232471c51e24254873f182b865378aca60a0b171490d75c66123e007e1cdb137",
+  "output_bytes": 63488
 }

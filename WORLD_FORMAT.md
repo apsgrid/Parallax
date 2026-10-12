@@ -1,0 +1,62 @@
+# Parallax C64 World Format
+
+The corrected fully expanded playable image reveals the original flight world as a two-level tile hierarchy.
+
+## Master map
+
+- Base: `$8000`
+- Dimensions: **96 × 96 macro cells**
+- Storage: one byte per macro cell
+- Size: 9,216 bytes
+- Each byte selects one of 256 metatiles
+
+## Metatile table
+
+- Base: `$269C`
+- Count: 256 metatiles
+- Each metatile: **5 × 5 tile codes**
+- Storage: 25 bytes per metatile
+- Total size: 6,400 bytes
+
+Expanding the macro-map therefore produces a **480 × 480 tile world**.
+
+The address calculator at `$C176` performs the hierarchy:
+
+1. Use the macro Y coordinate to select one of the 96-byte rows via the pointer table at `$033C/$033D`.
+2. Read the macro-cell byte at macro X.
+3. Use that byte as an index into the metatile pointer table at `$03FC/$04FC`.
+4. Add the 5×5 fine X/Y offset to obtain the final tile code.
+
+The scroll renderer around `$C0DB-$C43F` copies those tile codes into the alternating 40-column C64 screen buffers at `$7800` and `$7C00`.
+
+## Original spawn
+
+The startup state initializes:
+- macro X: `$0707 = 2`
+- macro Y: `$0708 = 10`
+- fine X: `$0705 = 0`
+- fine Y: `$0706 = 0`
+
+This corresponds to expanded tile coordinate **(10, 50)**.
+
+## Collision / landing
+
+The flight collision sampler works against the rendered screen buffer, but those screen codes are the expanded world tile codes.
+
+For landing readiness, the 3×3 footprint counts a cell as acceptable when its code is **outside `$0D-$10`**. All nine cells must qualify.
+
+Other collision classes currently verified by the classifier include:
+- `$31-$3C`
+- `$48`
+- `$58`
+- altitude-dependent dynamic ranges around `$93/$94`
+
+Exact semantic names for those classes are still being reconstructed.
+
+## Godot integration
+
+`extract_world.py` expands the original hierarchy into local generated data for the Godot prototype.
+
+The generated `Godot/data/world_480.json` is deliberately ignored by Git because it contains derived original level data. The extractor and format documentation are versioned instead.
+
+The first Godot world slice is centered on the original spawn and uses the C64 tile-code classes directly for geometry and landing checks.

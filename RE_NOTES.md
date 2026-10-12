@@ -149,7 +149,7 @@ Encoding:
 
 Verified result:
 - output order \`$0800-$FFFF\`, then \`$0000-$0003\`
-- 63,492 expanded bytes
+- 63,488 expanded bytes
 - wrapped-image SHA-256 \`5f0fc248e0a9249e92798a2e753b32735d4e3b8674816ce6113879eaf2ce6795\`
 - canonical RAM snapshot: \`Unpacked/playable_ram.bin\`
 

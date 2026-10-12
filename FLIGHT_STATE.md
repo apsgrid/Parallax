@@ -15,7 +15,7 @@ Stage 5 expands the previous image into essentially the complete C64 address spa
 - Decompressor entry after stage 4: \`$0801\`
 - Stage-5 compressed stream after relocation: \`$2E0F-$FFFF\`
 - Playable output order: \`$0800-$FFFF\`, then \`$0000-$0003\`
-- Output bytes: 63,492
+- Output bytes: 63,488
 - Wrapped-image SHA-256: \`5f0fc248e0a9249e92798a2e753b32735d4e3b8674816ce6113879eaf2ce6795\`
 - Post-decompression handoff: \`$7C00\`
 

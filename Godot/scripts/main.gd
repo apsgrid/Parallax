@@ -6,8 +6,13 @@ const TILE_SIZE := 2.0
 const SIM_UNITS_PER_TILE := 16.0
 const WORLD_SCALE := TILE_SIZE / SIM_UNITS_PER_TILE
 const HEIGHT_SCALE := 0.25
+const WORLD_PATH := "res://data/world_480.json"
+const SPAWN_TILE := Vector2i(10, 50)
+const REGION_MIN := Vector2i(0, 26)
+const REGION_MAX := Vector2i(74, 94)
 
 var model := FlightModel.new()
+var world_tiles: Array = []
 
 var ship: Node3D
 var camera: Camera3D
@@ -33,6 +38,7 @@ var status_message := "Recovered C64 flight model active"
 
 
 func _ready() -> void:
+    _load_world_data()
     _build_environment()
     _build_world()
     _build_ship()
@@ -119,11 +125,22 @@ func _build_environment() -> void:
     add_child(sun)
 
 
+func _load_world_data() -> void:
+    var file := FileAccess.open(WORLD_PATH, FileAccess.READ)
+    if file == null:
+        push_error("Unable to load reconstructed Parallax world data")
+        return
+    var parsed = JSON.parse_string(file.get_as_text())
+    if typeof(parsed) == TYPE_DICTIONARY:
+        world_tiles = parsed.get("tiles", [])
+
+
 func _build_world() -> void:
-    var ground_material := _make_material(Color(0.16, 0.18, 0.15))
-    var pad_material := _make_material(Color(0.18, 0.34, 0.38))
-    var pad_edge_material := _make_material(Color(0.42, 0.56, 0.56))
-    var obstacle_material := _make_material(Color(0.30, 0.22, 0.18))
+    var ground_material := _make_material(Color(0.10, 0.12, 0.11))
+    var blocker_material := _make_material(Color(0.32, 0.26, 0.20))
+    var structure_material := _make_material(Color(0.24, 0.34, 0.39))
+    var special_material := _make_material(Color(0.38, 0.30, 0.40))
+    var detail_material := _make_material(Color(0.18, 0.22, 0.20))
 
     safe_material = _make_material(Color(0.20, 0.72, 0.38, 0.68))
     safe_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -132,37 +149,54 @@ func _build_world() -> void:
 
     var ground := MeshInstance3D.new()
     var plane := PlaneMesh.new()
-    plane.size = Vector2(48.0, 48.0)
+    var region_size := Vector2(
+        float(REGION_MAX.x - REGION_MIN.x + 1) * TILE_SIZE,
+        float(REGION_MAX.y - REGION_MIN.y + 1) * TILE_SIZE
+    )
+    plane.size = region_size
     ground.mesh = plane
+    ground.position = Vector3(
+        float(REGION_MIN.x + REGION_MAX.x - SPAWN_TILE.x * 2) * TILE_SIZE * 0.5,
+        0.0,
+        float(REGION_MIN.y + REGION_MAX.y - SPAWN_TILE.y * 2) * TILE_SIZE * 0.5
+    )
     ground.material_override = ground_material
     add_child(ground)
 
-    for x in range(-2, 3):
-        for z in range(-2, 3):
-            var mat := pad_edge_material if abs(x) == 2 or abs(z) == 2 else pad_material
-            _make_box(
-                self,
-                Vector3(TILE_SIZE * 0.94, 0.08, TILE_SIZE * 0.94),
-                Vector3(x * TILE_SIZE, 0.04, z * TILE_SIZE),
-                mat
-            )
+    for wy in range(REGION_MIN.y, REGION_MAX.y + 1):
+        for wx in range(REGION_MIN.x, REGION_MAX.x + 1):
+            var code := _tile_code(wx, wy)
+            var local_x := float(wx - SPAWN_TILE.x) * TILE_SIZE
+            var local_z := float(wy - SPAWN_TILE.y) * TILE_SIZE
 
-    var obstacle_list := [
-        Vector2i(-6, -3), Vector2i(-5, -3), Vector2i(-4, -3),
-        Vector2i(5, 1), Vector2i(5, 2), Vector2i(5, 3),
-        Vector2i(-2, 6), Vector2i(-1, 6), Vector2i(0, 6),
-        Vector2i(7, -6), Vector2i(7, -5),
-    ]
-
-    for cell in obstacle_list:
-        obstacle_cells[cell] = true
-        var height := 1.4 + float(abs(cell.x + cell.y) % 4) * 0.55
-        _make_box(
-            self,
-            Vector3(TILE_SIZE * 0.72, height, TILE_SIZE * 0.72),
-            Vector3(cell.x * TILE_SIZE, height * 0.5, cell.y * TILE_SIZE),
-            obstacle_material
-        )
+            if code >= 0x0D and code <= 0x10:
+                _make_box(
+                    self,
+                    Vector3(TILE_SIZE * 0.92, 1.75, TILE_SIZE * 0.92),
+                    Vector3(local_x, 0.875, local_z),
+                    blocker_material
+                )
+            elif code >= 0x31 and code < 0x3D:
+                _make_box(
+                    self,
+                    Vector3(TILE_SIZE * 0.78, 0.85, TILE_SIZE * 0.78),
+                    Vector3(local_x, 0.425, local_z),
+                    structure_material
+                )
+            elif code == 0x48 or code == 0x58:
+                _make_box(
+                    self,
+                    Vector3(TILE_SIZE * 0.58, 1.15, TILE_SIZE * 0.58),
+                    Vector3(local_x, 0.575, local_z),
+                    special_material
+                )
+            elif code != 0x2A and code != 0x00:
+                _make_box(
+                    self,
+                    Vector3(TILE_SIZE * 0.72, 0.06, TILE_SIZE * 0.72),
+                    Vector3(local_x, 0.03, local_z),
+                    detail_material
+                )
 
     for i in range(9):
         var marker := _make_box(
@@ -264,7 +298,19 @@ func _sample_footprint() -> int:
 
 
 func _is_landing_tile(x: int, y: int) -> bool:
-    return abs(x) <= 2 and abs(y) <= 2
+    var wx := SPAWN_TILE.x + x
+    var wy := SPAWN_TILE.y + y
+    var code := _tile_code(wx, wy)
+    return not (code >= 0x0D and code <= 0x10)
+
+
+func _tile_code(wx: int, wy: int) -> int:
+    if wy < 0 or wy >= world_tiles.size():
+        return 0x0D
+    var row = world_tiles[wy]
+    if typeof(row) != TYPE_ARRAY or wx < 0 or wx >= row.size():
+        return 0x0D
+    return int(row[wx])
 
 
 func _update_visuals() -> void:

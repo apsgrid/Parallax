@@ -12,9 +12,9 @@ Primary source:
 
 Canonical playable snapshot:
 - \`Unpacked/playable_ram.bin\` — full 64 KiB RAM state after all known unpacking stages
-- wrapped output order: \`$0800-$FFFF\`, then \`$0000-$0003\`
-- expanded bytes: 63,492
-- wrapped-image SHA-256: \`5f0fc248e0a9249e92798a2e753b32735d4e3b8674816ce6113879eaf2ce6795\`
+- output range: \`$0800-$FFFF\`
+- expanded bytes: 63,488
+- SHA-256: \`232471c51e24254873f182b865378aca60a0b171490d75c66123e007e1cdb137\`
 
 ## Reproducible extraction pipeline
 

@@ -8,7 +8,9 @@ Engine:
 - 50 Hz physics tick to match PAL-era update cadence
 
 Current prototype:
-- 3D orthographic greybox arena
+- 3D orthographic reconstruction of the original C64 spawn region
+- generated from the recovered 96x96 macro-map and 5x5 metatile hierarchy
+- collision / landing checks read the original expanded tile codes
 - recovered 16-step heading tables
 - recovered signed fixed-point X/Y velocity convergence
 - climb/dive flight-height state
