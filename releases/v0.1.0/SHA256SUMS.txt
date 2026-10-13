@@ -1,0 +1,4 @@
+e8bc35a1963e84e0c8ed3bacba90ecb3a517b73b4e39461942bc8b8189317cb1  Parallax-Android-arm64.apk
+8425e5588ed4f8c5955f9b0a0a30708c5751a388748bd46e8094ab8b7c9016b1  Parallax-Linux-SteamDeck-x86_64.tar.gz
+bd1dbcef3e13c4189a91c1f3301a6df1850827d7f86e21042a35bb74f59adacf  Parallax-Web.zip
+390ce1867f18ea82014ce80e7f00d1e0342c1d47875764407f05dd89216a2dde  Parallax-Windows-x64.zip
