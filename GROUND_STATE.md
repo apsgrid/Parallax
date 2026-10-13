@@ -151,19 +151,24 @@ This corrects the earlier interpretation that treated `$074A/$074B` as the movin
 
 FIRE near the craft uses the displacement above. Normal accepted range is -7..+7 on each axis. The return routine feeds the remaining displacement into `$0709/$070B` and `$C1FD`, cancelling the accumulated ground scrolling and restoring the landing world position before flight resumes.
 
-## Special RIGHT contact — `$C1-$C3 -> $E444` (VERIFIED branch, OPEN semantics)
+## Special RIGHT contact — `$C1-$C3 -> $E444` (VERIFIED interior entrance)
 
 If no normal movement was accepted, RIGHT is still held, and the sampled RIGHT character is `$C1`, `$C2`, or `$C3`, `$E15B` jumps to `$E444`.
 
-`$E444`:
-- saves fine scroll `$0703/$0704`;
-- switches graphics/data state through `$E321/$E803/$E866/$ECD7`;
-- relocates the local player coordinate to `$3E,$62` or `$3E,$8A` depending on contact code;
-- clears the ordinary four movement-block flags;
-- enters a secondary movement/collision/render loop at `$E491`;
-- eventually restores the prior display state and returns.
+The expanded world shows those three codes as a repeated vertical entrance motif:
+- `$C1` upper slice;
+- `$C2` middle slice;
+- `$C3` lower slice.
 
-This is a distinct ground/interior submode, not a generic FIRE interaction. Exact meanings of `$C1/$C2/$C3`, the interior objective, and its exit condition remain OPEN.
+`$E444` saves outdoor fine scroll, builds a fixed 40×20 local room, swaps local character data, stamps deterministic COMPUTABANK/COMPUTASHOP/KARD terminal patterns, relocates the player and enters the local movement loop at `$E491`.
+
+Recovered entry centres:
+- `$C1/$C2` -> local `($3E,$62)` -> cell (6,7)
+- `$C3` -> local `($3E,$8A)` -> cell (6,12)
+
+`$E4DA` exits when the LEFT collision sample becomes `$20` (space), then restores the outdoor display/state.
+
+See `INTERIOR_STATE.md` for the full room builder, terminal dispatch and exit reconstruction.
 
 ## Godot implementation
 
@@ -175,7 +180,7 @@ This is a distinct ground/interior submode, not a generic FIRE interaction. Exac
 - inverse scroll deltas;
 - exact 17-code passable whitelist;
 - exact idle/walk animation tables and four-move cadence;
-- the `$C1-$C3` special RIGHT-contact event.
+- the `$C1-$C3` special RIGHT-contact event and exact contacted entrance slice.
 
 `Godot/scripts/main.gd` additionally:
 - displays the recovered ground sprite frames;
@@ -194,6 +199,7 @@ This is a distinct ground/interior submode, not a generic FIRE interaction. Exac
 - fixed anchor vs mutable ground coordinate roles: **VERIFIED**
 - `$E280` active-screen pointer and exact four sampled screen cells: **VERIFIED**
 - C64 fine-scroll/tile/macro normalization ↔ expanded-world collision alignment: **VERIFIED structure**
-- `$C1-$C3 -> $E444` secondary-submode branch: **VERIFIED structure**
-- exact semantic names for `$C1/$C2/$C3`: **OPEN**
-- controlled VICE parity capture for outdoor collision timing: **OPEN**
+- `$C1-$C3 -> $E444` interior entrance branch: **VERIFIED**
+- `$C1/$C2/$C3` as upper/middle/lower slices of repeated entrance motifs: **VERIFIED**
+- `$E4DA` left-space local-area exit: **VERIFIED**
+- controlled VICE parity capture for outdoor/interior timing: **OPEN**

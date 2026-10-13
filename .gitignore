@@ -26,6 +26,7 @@ Godot/.godot/
 
 # Generated original world data (reconstruct locally)
 Godot/data/world_480.json
+Godot/data/interior_runtime.json
 
 # Derived C64 graphics / screenshots / live RAM captures
 Godot/generated/

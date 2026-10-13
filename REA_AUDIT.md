@@ -3,7 +3,7 @@
 ## Installed and exercised
 
 - **Code Spelunker (`cs`) 3.2.0** — installed at `C:\Users\Andrew\.local\bin\cs.exe`; used for state/address searches, stale-assumption detection, open-gap discovery, and shield follow-up.
-- **Funes 1.8.0** — installed in WSL Ubuntu at `~/.local/bin/funes`; project-isolated memory indexed 38 chunks from the authoritative Parallax RE documents and milestone history.
+- **Funes 1.8.0** — installed in WSL Ubuntu at `~/.local/bin/funes`; project-isolated memory currently indexes the authoritative Parallax RE documents and milestone history.
 - **TruffleHog 3.99.2** — installed in WSL for Funes' mandatory secret scanning.
 - **REA 6.4.0 (Windows)** — installed globally with Node 22.20.0.
 - **REA 6.4.0 (WSL)** — installed against a checksum-verified native Linux Node 22.20.0 runtime for source-import/evidence workflows that require Linux no-follow filesystem semantics.
@@ -21,7 +21,7 @@ Therefore REA must not be cited as the decompiler/disassembler authority for Par
 ## REA historical source graph
 
 WSL `import-reference-source` successfully created a `HistoricalSourceGraph` for the Godot reconstruction.
-- root SHA-256: `66641177303d2badf34cca9aa0816336ac70e40e4a84b73373dd4e031f431adc`
+- root SHA-256: `32f1cc363e8bc4561b42c34fb6d45120730ce7d3475ac6a4a2ae34bc4cd96b1d`
 - authority: `historical-reference`
 - includes hashed source, tests, project files, local generated world/graphics assets and documentation at audit time.
 
@@ -30,8 +30,8 @@ Generated graph JSON remains local under `rea_audit/`.
 ## REA reconstruction obligation ledger
 
 Authenticated review Evidence was generated with REA's own `createEvidence()` and `createEvidenceBundle()` implementation.
-- ledger ID: `rol_b50a57361a9dd1a739763dd713fade10dc5ba016ae95c4f0f8af505d95496a23`
-- closure digest: `898aed46f9e61dc66c7a0d757a670833adf6caa304338ad9317231aaa2356ec9`
+- ledger ID: `rol_ec1fb777abbfcec519ba70b679797a222d32f92ced7de9d2b8b6c216e8a718e5`
+- closure digest: `9ece6aadc4dfd38882eaef88867aa4597ceacdedeb909851f73bd531e18c0458`
 - status: `unknown` (intentionally conservative)
 - required obligations: 6
 - verified: 0
@@ -39,15 +39,15 @@ Authenticated review Evidence was generated with REA's own `createEvidence()` an
 
 Tracked obligations:
 1. shield behavior beyond toggle/status presentation;
-2. RETURN/datacard/password computer behavior;
+2. full KARD/account/password computer progression beyond the completed cardless terminal slice;
 3. exact collision-tile taxonomy;
 4. the remaining special `$E9E5 == 6` flight-ground return case;
-5. controlled runtime parity for the reconstructed ground collision grid and `$C1-$C3 -> $E444` submode semantics;
+5. controlled runtime parity for the reconstructed outdoor/interior movement and terminal timing;
 6. exact ship/shadow projection ownership.
 
 ## Funes validation
 
-Current project memory source validates as 25 turns / 79 chunks / 0 rejected / 0 duplicate IDs before indexing.
+Current project memory source validates as 27 turns / 94 chunks / 0 rejected / 0 duplicate IDs before indexing.
 Recall checks correctly retrieved:
 - corrected Stage-5 range, byte count and SHA-256;
 - post-startup viewport/player coordinates;
@@ -104,3 +104,28 @@ Verified rules include:
 - `$C1-$C3` blocked RIGHT contact branches into the secondary ground submode at `$E444`.
 
 The Godot scene now renders the recovered ground sprite frames and maps outdoor collision through the recovered C64 screen grid. The `$E280` pointer is `$797B/$7D7B`, giving exact samples UP(19,9), LEFT(18,10), RIGHT(20,10), DOWN(19,11). The bridge combines landing and inverse ground-scroll pixels before applying the recovered `$C1FD -> $C00E/$C03F -> $C070/$C091` normalization chain. Static alignment and unit-boundary tests pass; a controlled VICE parity capture remains desirable as runtime evidence.
+
+## Second-pass finding: interiors and first complete vertical slice
+
+The `$C1/$C2/$C3 -> $E444` branch is no longer an open semantic submode.
+
+Verified structure now includes:
+- `$C1/$C2/$C3` as upper/middle/lower slices of repeated world entrance motifs;
+- `$E444` local-area entry and preserved outdoor fine scroll;
+- fixed 40×20 room construction from the original metatile set;
+- `$E803/$E821` interior charset swap/restore;
+- deterministic COMPUTABANK, COMPUTASHOP and KARD/password pattern placement;
+- local coordinate transform at `$E5E6`;
+- entry centres (6,7) for `$C1/$C2` and (6,12) for `$C3`;
+- terminal dispatch at `$EBEB` with direction-specific contact codes;
+- `$E4DA` left-`$20` interior exit;
+- `$EC45` terminal unwind when the held direction changes;
+- progression passwords `STACK`, `JEWEL`, `PARCH`, `SALON`, `GLOBE`.
+
+Godot now implements a deterministic `InteriorModel`, generated local room data, terminal presentation, local movement/collision and restoration to outdoor state.
+
+The automated `test_vertical_slice.gd` now completes:
+
+**flight -> landing -> SHIP SUPPLY -> EXIT SHIP -> outdoor walking -> structure entry -> COMPUTABANK interaction -> structure exit -> return to craft -> flight**
+
+The first complete gameplay vertical slice is therefore implemented. Remaining computer work concerns deeper KARD/account/shop/password progression rather than the basic interior interaction loop. Runtime parity capture and exact interior raster/palette timing remain separate fidelity tasks; the verified `$80-$BF` charset swap is now reproduced by a dedicated generated interior atlas.

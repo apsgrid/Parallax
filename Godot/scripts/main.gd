@@ -3,12 +3,14 @@ extends Node3D
 const FlightModel = preload("res://scripts/flight_model.gd")
 const GroundModel = preload("res://scripts/ground_model.gd")
 const SupplyModel = preload("res://scripts/supply_model.gd")
+const InteriorModel = preload("res://scripts/interior_model.gd")
 
 const TILE_SIZE := 2.0
 const SIM_UNITS_PER_TILE := 8.0
 const WORLD_SCALE := TILE_SIZE / SIM_UNITS_PER_TILE
 const HEIGHT_SCALE := 0.25
 const WORLD_PATH := "res://data/world_480.json"
+const INTERIOR_DATA_PATH := "res://data/interior_runtime.json"
 const INITIAL_VIEW_ORIGIN_TILE := Vector2i(10, 30)
 const PLAYER_START_TILE := Vector2i(29, 39)
 const STREAM_HALF_X := 28
@@ -17,10 +19,14 @@ const STREAM_REBUILD_DISTANCE := 12
 
 var model := FlightModel.new()
 var world_tiles: Array = []
+var interior_runtime_data: Dictionary = {}
 var tile_atlas_images: Array[Image] = []
+var interior_atlas_images: Array[Image] = []
 var tile_material_cache := {}
+var interior_material_cache := {}
 var tile_side_material: StandardMaterial3D
 var world_root: Node3D
+var interior_root: Node3D
 var stream_center_tile := Vector2i(-9999, -9999)
 
 var ship: Node3D
@@ -31,6 +37,8 @@ var hud: Label
 var hud_panel: PanelContainer
 var supply_panel: PanelContainer
 var supply_label: Label
+var terminal_panel: PanelContainer
+var terminal_label: Label
 var gear_nodes := []
 var footprint_markers := []
 var bolts := []
@@ -57,15 +65,20 @@ var status_message := "Recovered C64 flight model active"
 
 func _ready() -> void:
     _load_world_data()
+    _load_interior_data()
+    model.configure_interior_runtime(interior_runtime_data)
     _load_tile_atlases()
+    _load_interior_atlases()
     _load_ground_sprites()
     _build_environment()
     _build_world()
+    _build_interior_root()
     _build_ship()
     _build_ground_player()
     _build_camera()
     _build_hud()
     _build_supply_hud()
+    _build_terminal_hud()
     _update_visuals()
     _update_hud()
 
@@ -107,7 +120,11 @@ func _physics_process(_delta: float) -> void:
 
     var return_now := Input.is_key_pressed(KEY_ENTER)
     if return_now and not last_return:
-        status_message = "Datacard/password computer: not wired yet"
+        if model.in_interior() and model.interior_model.terminal_open:
+            status_message = "%s — returning to interior" % InteriorModel.terminal_name(model.interior_model.terminal_kind)
+            model.close_interior_terminal()
+        else:
+            status_message = "Datacard display outside terminal interaction: not wired yet"
     last_return = return_now
 
     var debug_hud_now := Input.is_key_pressed(KEY_F1)
@@ -163,9 +180,14 @@ func _physics_process(_delta: float) -> void:
         else:
             status_message = "Returned to flight — $F4 cleared / $F3 restored"
     if events["ground_moved"]:
-        status_message = "ON FOOT — recovered one-pixel movement"
-    if events["ground_special_interaction"]:
-        status_message = "Ground special contact $C1-$C3 — handler $E444 not reconstructed yet"
+        status_message = "INTERIOR — recovered one-pixel movement" if model.in_interior() else "ON FOOT — recovered one-pixel movement"
+    if events["entered_interior"]:
+        _rebuild_interior_room()
+        status_message = "ENTER STRUCTURE — recovered $E444 local-area mode ($%02X)" % int(events["interior_entry_code"])
+    if events["interior_terminal_opened"]:
+        status_message = "%s — recovered terminal interaction" % InteriorModel.terminal_name(int(events["interior_terminal_kind"]))
+    if events["exited_interior"]:
+        status_message = "EXIT STRUCTURE — outdoor state restored"
 
     _maybe_stream_world()
     _update_bolts()
@@ -202,6 +224,16 @@ func _load_world_data() -> void:
         world_tiles = parsed.get("tiles", [])
 
 
+func _load_interior_data() -> void:
+    var file := FileAccess.open(INTERIOR_DATA_PATH, FileAccess.READ)
+    if file == null:
+        push_error("Unable to load reconstructed Parallax interior data")
+        return
+    var parsed = JSON.parse_string(file.get_as_text())
+    if typeof(parsed) == TYPE_DICTIONARY:
+        interior_runtime_data = parsed
+
+
 func _load_tile_atlases() -> void:
     tile_atlas_images.clear()
     for zone in range(6):
@@ -214,6 +246,19 @@ func _load_tile_atlases() -> void:
             tile_atlas_images.append(image)
 
 
+
+
+func _load_interior_atlases() -> void:
+    interior_atlas_images.clear()
+    interior_material_cache.clear()
+    for zone in range(6):
+        var relative_path := "res://generated/interior_tiles_zone_%d.png" % zone
+        var image := Image.load_from_file(ProjectSettings.globalize_path(relative_path))
+        if image == null or image.is_empty():
+            push_error("Unable to load generated C64 interior tile atlas: " + relative_path)
+            interior_atlas_images.append(Image.create_empty(128, 128, false, Image.FORMAT_RGB8))
+        else:
+            interior_atlas_images.append(image)
 
 
 func _load_ground_sprites() -> void:
@@ -249,6 +294,57 @@ func _build_world() -> void:
         )
         marker.visible = debug_footprint_visible
         footprint_markers.append(marker)
+
+
+func _build_interior_root() -> void:
+    interior_root = Node3D.new()
+    interior_root.name = "Interior"
+    interior_root.visible = false
+    add_child(interior_root)
+
+
+func _rebuild_interior_room() -> void:
+    if interior_root == null:
+        return
+    for child in interior_root.get_children():
+        child.queue_free()
+
+    var layout: Array = model.interior_model.layout
+    var exterior_tile := _ground_player_world_tile()
+    var zone := _zone_for_world_y(exterior_tile.y)
+    for y in range(layout.size()):
+        var row: Array = layout[y]
+        for x in range(row.size()):
+            var code := int(row[x])
+            if code == 0x20:
+                continue
+            var passable := GroundModel.is_passable_tile(code)
+            var height := 0.035 if passable else 0.42
+            var position_value := Vector3(
+                float(x - 20) * TILE_SIZE,
+                0.0,
+                float(y - 10) * TILE_SIZE
+            )
+            var material := _interior_tile_material(code, zone)
+            _make_interior_tile(position_value, height, material)
+
+
+func _make_interior_tile(origin: Vector3, height: float, material: StandardMaterial3D) -> void:
+    if height > 0.05:
+        _make_box(
+            interior_root,
+            Vector3(TILE_SIZE, height, TILE_SIZE),
+            origin + Vector3(0.0, height * 0.5, 0.0),
+            tile_side_material
+        )
+
+    var top := MeshInstance3D.new()
+    var mesh := PlaneMesh.new()
+    mesh.size = Vector2(TILE_SIZE, TILE_SIZE)
+    top.mesh = mesh
+    top.position = origin + Vector3(0.0, maxf(height, 0.025) + 0.003, 0.0)
+    top.material_override = material
+    interior_root.add_child(top)
 
 
 func _build_ship() -> void:
@@ -364,6 +460,44 @@ func _build_supply_hud() -> void:
     supply_label.add_theme_color_override("font_color", Color(0.94, 0.94, 0.90))
     supply_label.add_theme_constant_override("line_spacing", 6)
     supply_panel.add_child(supply_label)
+
+
+func _build_terminal_hud() -> void:
+    var canvas := CanvasLayer.new()
+    canvas.layer = 6
+    add_child(canvas)
+
+    terminal_panel = PanelContainer.new()
+    terminal_panel.position = Vector2(410, 150)
+    terminal_panel.custom_minimum_size = Vector2(460, 360)
+
+    var style := StyleBoxFlat.new()
+    style.bg_color = Color(0.005, 0.008, 0.012, 0.96)
+    style.border_width_left = 2
+    style.border_width_top = 2
+    style.border_width_right = 2
+    style.border_width_bottom = 2
+    style.border_color = Color(0.48, 0.78, 0.66, 0.95)
+    style.corner_radius_top_left = 5
+    style.corner_radius_top_right = 5
+    style.corner_radius_bottom_left = 5
+    style.corner_radius_bottom_right = 5
+    terminal_panel.add_theme_stylebox_override("panel", style)
+    terminal_panel.visible = false
+    canvas.add_child(terminal_panel)
+
+    terminal_label = Label.new()
+    terminal_label.custom_minimum_size = Vector2(430, 330)
+    terminal_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    terminal_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+    terminal_label.add_theme_font_size_override("font_size", 24)
+    terminal_label.add_theme_color_override("font_color", Color(0.84, 1.0, 0.90))
+    terminal_label.add_theme_constant_override("line_spacing", 7)
+    terminal_panel.add_child(terminal_label)
+
+
+func _update_terminal_hud() -> void:
+    terminal_label.text = model.interior_model.terminal_text()
 
 
 func _sample_footprint() -> int:
@@ -554,6 +688,32 @@ func _tile_material(code: int, zone: int) -> StandardMaterial3D:
     return material
 
 
+func _interior_tile_material(code: int, zone: int) -> StandardMaterial3D:
+    var key := zone * 256 + code
+    if interior_material_cache.has(key):
+        return interior_material_cache[key]
+
+    var atlas_image: Image = interior_atlas_images[zone]
+    var region := Rect2i(
+        (code & 0x0F) * 8,
+        (code >> 4) * 8,
+        8,
+        8
+    )
+    var glyph_image := atlas_image.get_region(region)
+    var glyph_texture := ImageTexture.create_from_image(glyph_image)
+
+    var material := StandardMaterial3D.new()
+    material.albedo_texture = glyph_texture
+    material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+    material.texture_repeat = false
+    material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+    material.roughness = 0.88
+    material.metallic = 0.0
+    interior_material_cache[key] = material
+    return material
+
+
 func _make_world_tile(origin: Vector3, height: float, material: StandardMaterial3D) -> void:
     if height > 0.05:
         _make_box(
@@ -573,6 +733,7 @@ func _make_world_tile(origin: Vector3, height: float, material: StandardMaterial
 
 
 func _update_visuals() -> void:
+    var in_interior := model.in_interior()
     var y_height := 0.44 if model.landed else 1.0 + float(model.flight_height - FlightModel.HEIGHT_MIN) * HEIGHT_SCALE
     ship.position = Vector3(
         float(-model.world_x) * WORLD_SCALE,
@@ -580,11 +741,17 @@ func _update_visuals() -> void:
         float(-model.world_y) * WORLD_SCALE
     )
     ship.rotation.y = -float(model.heading) * TAU / 16.0
+    ship.visible = not in_interior
+
+    if world_root != null:
+        world_root.visible = not in_interior
+    if interior_root != null:
+        interior_root.visible = in_interior
 
     for leg in gear_nodes:
-        leg.visible = model.landing_gear
+        leg.visible = model.landing_gear and not in_interior
 
-    ground_player.visible = model.on_foot()
+    ground_player.visible = model.on_foot() or in_interior
     if model.on_foot():
         ground_player.position = ship.position + Vector3(
             float(model.ground_model.player_offset.x) * WORLD_SCALE,
@@ -594,13 +761,30 @@ func _update_visuals() -> void:
         var frame := model.ground_model.frame_code
         if ground_sprite_textures.has(frame):
             ground_player.texture = ground_sprite_textures[frame]
+    elif in_interior:
+        var cell := model.interior_model.center_cell()
+        ground_player.position = Vector3(
+            float(cell.x - 20) * TILE_SIZE,
+            0.65,
+            float(cell.y - 10) * TILE_SIZE
+        )
+        var frame := model.interior_model.frame_code
+        if ground_sprite_textures.has(frame):
+            ground_player.texture = ground_sprite_textures[frame]
 
     if supply_panel != null:
         supply_panel.visible = model.in_supply_menu()
         if model.in_supply_menu():
             _update_supply_hud()
 
-    var focus := ground_player.position if model.on_foot() else ship.position
+    if terminal_panel != null:
+        terminal_panel.visible = in_interior and model.interior_model.terminal_open
+        if terminal_panel.visible:
+            _update_terminal_hud()
+
+    var focus := ship.position
+    if model.on_foot() or in_interior:
+        focus = ground_player.position
     camera.position = focus + Vector3(8.0, 34.0, 8.0)
     camera.look_at(focus, Vector3.UP)
 
@@ -681,6 +865,15 @@ func _update_supply_hud() -> void:
 func _update_hud() -> void:
     var target := model.target_velocity()
     var heading_degrees := float(model.heading) * 22.5
+    var state_label := "FLIGHT"
+    if model.in_supply_menu():
+        state_label = "SUPPLY"
+    elif model.in_interior():
+        state_label = "INTERIOR / TERMINAL" if model.interior_model.terminal_open else "INTERIOR"
+    elif model.on_foot():
+        state_label = "GROUND"
+    elif model.ground_transition_flag:
+        state_label = "TRANSITION"
 
     hud.text = (
         "PARALLAX REMAKE — C64 FLIGHT MODEL\n"
@@ -700,12 +893,10 @@ func _update_hud() -> void:
         + "$F4 ground flag  %s\n" % ("SET" if model.ground_transition_flag else "clear")
         + "$F3 flight mode  %s\n" % ("1" if model.flight_raster_mode else "0")
         + "$E049 init guard %s\n" % ("SET" if model.ground_initialized else "clear")
-        + "State            %s\n\n" % (
-            "SUPPLY" if model.in_supply_menu()
-            else ("GROUND" if model.on_foot() else ("TRANSITION" if model.ground_transition_flag else "FLIGHT"))
-        )
-        + "Arrows / WASD  flight / supply cursor / on-foot movement\n"
+        + "State            %s\n\n" % state_label
+        + "Arrows / WASD  flight / supply cursor / on-foot / interior movement\n"
         + "Z              fire / land / return to ship\n"
+        + "ENTER          close active interior terminal\n"
         + "SPACE          landing gear\n"
         + "F7             shields (UI state for now)\n"
         + "TAB            recovered velocity table mode\n"

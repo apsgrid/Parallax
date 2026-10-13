@@ -13,6 +13,7 @@ docs=[
     ("transition-state","TRANSITION_STATE.md"),
     ("supply-state","SUPPLY_STATE.md"),
     ("ground-state","GROUND_STATE.md"),
+    ("interior-state","INTERIOR_STATE.md"),
     ("world-format","WORLD_FORMAT.md"),
     ("tile-graphics","TILE_GRAPHICS.md"),
     ("re-tooling","RE_TOOLING.md"),

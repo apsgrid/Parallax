@@ -19,12 +19,12 @@ const findings = [
   },
   {
     id: "computer.datacard.return",
-    title: "Reconstruct RETURN/datacard/password computer behavior",
+    title: "Complete KARD/account/password computer behavior beyond the recovered cardless terminal slice",
     family: "computer-ui",
-    location: "C64 RETURN event -> Godot datacard/password computer",
-    finding: "RETURN is recognized in the C64 keyboard path, but the Godot prototype explicitly reports the computer as not wired yet.",
-    sources: ["FLIGHT_STATE.md", "Godot/scripts/main.gd"],
-    next: ["Trace the RETURN event handler, datacard/password data structures, screen transitions and exit path.", "Create deterministic fixtures for at least one datacard/password interaction."]
+    location: "$EBEB terminal dispatch -> $ED2C COMPUTABANK / $EF3C COMPUTASHOP / $F12B KARD-password terminal",
+    finding: "The interior terminal layer is reconstructed and implemented: direction-specific terminal contact codes, COMPUTABANK/COMPUTASHOP/KARD dispatch, the five progression passwords, and the initial cardless interaction/return path are verified. Full KARD ownership, account transactions, purchase state, and modern password-entry progression remain incomplete.",
+    sources: ["INTERIOR_STATE.md", "Godot/scripts/interior_model.gd", "Godot/tests/test_interior_model.gd", "Godot/tests/test_vertical_slice.gd", "verify_interior_mode.py", "trace_interior_interactions.py"],
+    next: ["Reconstruct complete KARD ownership/account state and bank transaction semantics.", "Implement COMPUTASHOP purchase state and all five password-entry progression outcomes.", "Capture a controlled original terminal transaction in VICE."]
   },
   {
     id: "terrain.collision.taxonomy",
@@ -46,12 +46,12 @@ const findings = [
   },
   {
     id: "ground.fine-scroll-collision",
-    title: "Resolve special $C1-$C3 ground/interior submode and validate reconstructed collision timing",
+    title: "Validate reconstructed outdoor/interior movement timing against the original runtime",
     family: "ground-control",
-    location: "$E280/$E2FC exact screen sampler; $C1-$C3 -> $E444",
-    finding: "The $E280 zero-page pointer is now correctly decoded as $797B/$7D7B, giving exact samples UP(19,9), LEFT(18,10), RIGHT(20,10), DOWN(19,11). $C1FD plus $C00E/$C03F and $C070/$C091 establish the signed fine-scroll/tile/macro normalization, and Godot now combines landing and inverse ground scroll before sampling the expanded map. Remaining uncertainty is controlled runtime parity and the semantic identities/exit behavior of the $C1/$C2/$C3 -> $E444 submode.",
-    sources: ["GROUND_STATE.md", "WORLD_FORMAT.md", "ground_state_map.json", "Godot/scripts/ground_model.gd", "Godot/scripts/main.gd", "Godot/tests/test_ground_model.gd", "trace_ground_collision_alignment.py", "trace_ground_controls.py", "trace_ground_special.py", "trace_ground_submode.py"],
-    next: ["Capture one reproducible VICE outdoor movement case across a character boundary and compare sampled codes/frame timing.", "Identify the semantic roles of $C1/$C2/$C3 and the exit condition of the $E444 secondary ground/interior submode."]
+    location: "$E280/$E2FC outdoor sampler; $C1-$C3 -> $E444 local-area mode -> $E4DA exit",
+    finding: "Outdoor collision, the repeated C1/C2/C3 entrance motif, E444 room entry, 40x20 room generation, E5E6 local coordinate transform, EBEB terminal dispatch, and E4DA left-space exit are reconstructed and implemented. The automated vertical slice now enters a structure, interacts with COMPUTABANK, exits, returns to the craft and resumes flight. Remaining evidence gap is runtime parity rather than structural semantics.",
+    sources: ["GROUND_STATE.md", "INTERIOR_STATE.md", "ground_state_map.json", "Godot/scripts/ground_model.gd", "Godot/scripts/interior_model.gd", "Godot/scripts/flight_model.gd", "Godot/tests/test_ground_model.gd", "Godot/tests/test_interior_model.gd", "Godot/tests/test_vertical_slice.gd", "trace_ground_collision_alignment.py", "verify_interior_mode.py"],
+    next: ["Capture one reproducible VICE outdoor character-boundary case and one complete interior entry/terminal/exit case.", "Compare original frame timing and sampled character codes against the reference models."]
   },
   {
     id: "rendering.ship-shadow-ownership",

@@ -57,6 +57,7 @@ func step(input_bits: int, blocked_bits: int, right_contact_code: int = -1) -> D
         "move_delta": Vector2i.ZERO,
         "scroll_delta": Vector2i.ZERO,
         "special_right_interaction": false,
+        "special_contact_code": -1,
     }
 
     # $E15B checks directions in strict priority order. A blocked direction
@@ -91,6 +92,7 @@ func step(input_bits: int, blocked_bits: int, right_contact_code: int = -1) -> D
     # accepted. Codes $C1-$C3 branch to the special handler at $E444.
     if (input_bits & RIGHT) != 0 and right_contact_code >= 0xC1 and right_contact_code < 0xC4:
         events["special_right_interaction"] = true
+        events["special_contact_code"] = right_contact_code
 
     frame_code = IDLE_FRAMES[facing - 1]
     return events

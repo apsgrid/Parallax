@@ -3,10 +3,14 @@ extends RefCounted
 
 const GroundModel = preload("res://scripts/ground_model.gd")
 const SupplyModel = preload("res://scripts/supply_model.gd")
+const InteriorModel = preload("res://scripts/interior_model.gd")
 
 const GROUND_PHASE_NONE := 0
 const GROUND_PHASE_SUPPLY := 1
 const GROUND_PHASE_OUTSIDE := 2
+const GROUND_PHASE_INTERIOR := 3
+
+const INITIAL_VIEW_ORIGIN_TILE := Vector2i(10, 30)
 
 const HEIGHT_MIN := 0x03
 const HEIGHT_MAX := 0x28
@@ -59,6 +63,8 @@ var ground_entry_world := Vector2i.ZERO
 var ground_phase := GROUND_PHASE_NONE
 var ground_model := GroundModel.new()
 var supply_model := SupplyModel.new()
+var interior_model := InteriorModel.new()
+var region_index := 0
 
 var _input_counters := [0, 0, 0, 0]
 
@@ -86,7 +92,13 @@ func reset() -> void:
     ground_phase = GROUND_PHASE_NONE
     ground_model.reset()
     supply_model.reset_all()
+    interior_model.reset()
+    region_index = 0
     _input_counters = [0, 0, 0, 0]
+
+
+func configure_interior_runtime(data: Dictionary) -> void:
+    interior_model.configure_runtime(data)
 
 
 func toggle_landing_gear() -> void:
@@ -119,6 +131,11 @@ func step(
         "supply_changed": false,
         "supply_stay_aboard": false,
         "supply_message_code": SupplyModel.MSG_NONE,
+        "entered_interior": false,
+        "exited_interior": false,
+        "interior_terminal_opened": false,
+        "interior_terminal_kind": InteriorModel.TERMINAL_NONE,
+        "interior_entry_code": -1,
     }
 
     # The flight dispatcher tests $F4 before running any flight update.
@@ -152,6 +169,18 @@ func step(
                 events["exited_ship"] = true
             return events
 
+        if ground_phase == GROUND_PHASE_INTERIOR:
+            var interior_events: Dictionary = interior_model.step(input_bits)
+            events["ground_moved"] = interior_events["moved"]
+            events["ground_move_delta"] = interior_events["move_delta"]
+            events["interior_terminal_opened"] = interior_events["terminal_opened"]
+            events["interior_terminal_kind"] = interior_events["terminal_kind"]
+
+            if interior_events["exited"]:
+                ground_phase = GROUND_PHASE_OUTSIDE
+                events["exited_interior"] = true
+            return events
+
         var ground_events: Dictionary = ground_model.step(
             input_bits,
             ground_blocked_bits,
@@ -162,6 +191,20 @@ func step(
         events["ground_move_delta"] = ground_events["move_delta"]
         events["ground_scroll_delta"] = ground_events["scroll_delta"]
         events["ground_special_interaction"] = ground_events["special_right_interaction"]
+
+        if ground_events["special_right_interaction"]:
+            var entry_code := int(ground_events["special_contact_code"])
+            var screen_origin := GroundModel.screen_origin_tile(
+                INITIAL_VIEW_ORIGIN_TILE,
+                ground_entry_world + ground_model.scroll_offset
+            )
+            var macro_x := floori(float(screen_origin.x) / 5.0)
+            var macro_y := floori(float(screen_origin.y) / 5.0)
+            interior_model.enter(entry_code, macro_x, macro_y, region_index)
+            ground_phase = GROUND_PHASE_INTERIOR
+            events["entered_interior"] = true
+            events["interior_entry_code"] = entry_code
+            return events
 
         if fire_pressed and _can_return_to_ship():
             _exit_ground_mode()
@@ -240,6 +283,14 @@ func on_foot() -> bool:
     return ground_transition_flag and ground_initialized and ground_phase == GROUND_PHASE_OUTSIDE
 
 
+func in_interior() -> bool:
+    return ground_transition_flag and ground_initialized and ground_phase == GROUND_PHASE_INTERIOR
+
+
+func close_interior_terminal() -> void:
+    interior_model.close_terminal()
+
+
 func _can_return_to_ship() -> bool:
     return (
         ground_player_offset.x >= -7
@@ -264,6 +315,7 @@ func _exit_ground_mode() -> void:
     ground_phase = GROUND_PHASE_NONE
     landed = false
     ground_player_offset = Vector2i.ZERO
+    interior_model.reset()
 
 
 func _process_direction_input(input_bits: int) -> void:

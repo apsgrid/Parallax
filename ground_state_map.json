@@ -150,9 +150,28 @@
     "expanded_world_origin_shift": "-floor(total_scroll_pixels / 8)",
     "confidence": "verified-structure"
   },
+  "interior": {
+    "entry_handler": "0xE444",
+    "frame_loop": "0xE491",
+    "coordinate_transform": "0xE5E6",
+    "exit_check": "0xE4DA",
+    "entry_codes": {
+      "0xC1": {"slice": "upper", "spawn": [62, 98], "center_cell": [6, 7]},
+      "0xC2": {"slice": "middle", "spawn": [62, 98], "center_cell": [6, 7]},
+      "0xC3": {"slice": "lower", "spawn": [62, 138], "center_cell": [6, 12]}
+    },
+    "terminal_dispatch": {
+      "computabank": {"right": "0xD0", "left": "0xCE", "down": "0xCD", "up": "0xCF"},
+      "computashop": {"right": "0xD2", "left": "0xD1"},
+      "password": {"right": "0xD5", "left": "0xD3", "down": "0xD6", "up": "0xD4"}
+    },
+    "passwords": ["STACK", "JEWEL", "PARCH", "SALON", "GLOBE"],
+    "exit_condition": "left collision sample == 0x20",
+    "confidence": "verified"
+  },
   "open": [
-    "Exact semantic names for C1/C2/C3 special right-contact codes",
-    "Exact purpose/exit semantics of the E444 secondary ground submode",
-    "Controlled VICE parity capture for outdoor collision timing"
+    "Controlled VICE parity capture for outdoor/interior timing",
+    "Full KARD/account/password transaction state",
+    "Controlled VICE parity for interior raster/palette timing"
   ]
 }
