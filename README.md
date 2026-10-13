@@ -61,7 +61,7 @@ The first complete gameplay vertical slice is now executable and regression-test
 
 Current targets beyond the completed endgame milestone:
 
-1. Reconstruct natural flight projectile/destructible and enemy/object score production so the exact `> TODAYS BESTEST SCORE` ending qualification is reachable through modern gameplay without test injection.
+1. Finish the authentic three-slot moving-flight-object spawn/type/motion scheduler. The resident single laser, destructible terrain +15 scoring, moving-object hit geometry and `2*object_state` award formula are now reconstructed; one ordinary destructible hit can naturally beat the initial `000010` best score.
 2. Resolve the exact identities, behavior and player effects of the remaining local entity types 1 and 3.
 3. Assign exact semantics to the remaining flight collision tile classes.
 4. Identify sprite ownership for ship, shadow, projectiles and landing gear.

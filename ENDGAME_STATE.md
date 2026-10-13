@@ -222,9 +222,9 @@ Known original score sources include:
 
 Routine `$226D+` folds `$022D` into the six decimal score digits with carry normalization.
 
-The current Godot prototype now models the score value and exact ending qualification, but it does **not** invent points for simply firing a laser. Natural score production remains part of the unfinished flight projectile/enemy damage subsystem.
+The Godot prototype now connects the verified resident laser/destructible path to this score state. A recovered destructible terrain collision queues exactly +15, so ordinary play can raise the score from `000000` to `000015` and naturally beat the initial `000010` record. Points are still **not** invented merely for firing.
 
-This is now tracked as a combat/score obligation rather than an endgame ambiguity.
+The separate remaining combat obligation is the complete three-slot moving-flight-object scheduler. Its exact laser-hit geometry and `2*object_state` award endpoint are already reconstructed, but modern play does not spawn substitute targets until the original scheduler is implemented. See `FLIGHT_COMBAT_STATE.md`.
 
 ## Recovered ending text (VERIFIED)
 

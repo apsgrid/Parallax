@@ -46,7 +46,7 @@ Current prototype:
 - recovered stage-5 unique winning destination: master marker (90,59) → final viewport macro (86,57)
 - recovered final FIRE effect, $030D=$7B ending-overlay handoff and strict >000010 initial score qualification
 - recovered original congratulatory ending, five-character UP/DOWN/FIRE name entry, best-score update and title return
-- executable endgame state machine and UI; natural combat score production remains a separate projectile/enemy subsystem
+- executable endgame state machine and UI; verified destructible-terrain +15 score production now feeds the ending naturally, while the authentic moving-object scheduler remains open
 - executable vertical slice: flight → land → supply → disembark → walk → interior terminal → outdoors → craft → flight
 - complete corrected 480×480 world available to the renderer
 - streamed world window that follows the craft
@@ -91,3 +91,12 @@ Platform/export notes:
 - Touch controls feed the same `FlightModel` / `GroundModel` / terminal state machines as keyboard input.
 - Android package ID: `com.apsgrid.parallax`; current sideload APK is debug-signed because no release signing secret is stored in the repository.
 - See the root `BUILDING.md`.
+
+
+Flight combat update:
+- recovered resident single-laser state/motion is implemented rather than using the earlier decorative bolt;
+- destructible terrain classes 2/3 award the verified +15 points;
+- score feeds the recovered ending qualification naturally;
+- direct persistent laser writeback is `$F7 -> $00`;
+- moving-object hit geometry/height bands/`2*object_state` scoring are implemented as verified primitives;
+- authentic three-slot object spawn/motion remains open, so no substitute enemies are spawned.

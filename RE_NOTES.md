@@ -182,3 +182,12 @@ Primary routines:
 - \`$2085\` keyboard matrix scanner.
 
 The flight update chain is mirrored in several resident banks. A clean copy starts at \`$0E30\` and calls the routines above in stable order.
+
+
+## Flight combat milestone
+
+Natural resident flight combat now includes the recovered single player laser, terrain collision classes, destructible terrain response and score production. A class-2/class-3 destructible hit queues 15 points in the original and the Godot model applies the same verified award to the score consumed by the ending.
+
+The direct persistent hit writeback is `$F7 -> $00`; the neighboring `$1AB4/$1AB9` byte pairs belong to the separate `$1AC1` master-map maintenance pass and are not treated as additional direct laser replacements.
+
+The moving-object laser collision and `2*object_state` award path are reconstructed as a tested primitive. Authentic three-slot moving-object spawning/movement remains open and synthetic enemies are intentionally not introduced.

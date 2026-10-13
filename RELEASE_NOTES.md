@@ -15,7 +15,7 @@ Playable systems include:
 - desktop keyboard controls;
 - touchscreen controls and virtual-keyboard terminal input.
 
-Current known reconstruction gaps are tracked in REA/project documentation. The largest gameplay gap for this build is natural flight combat/enemy score production: the ending consumes the authentic score state, but the remaining verified projectile/destructible and moving-object award events still need to be wired into ordinary play.
+Current known reconstruction gaps are tracked in REA/project documentation. Natural resident laser fire and destructible-terrain +15 score production are now wired into ordinary play, so the ending's score qualification can be reached without test injection. The remaining flight-combat gap is the authentic three-slot moving-object spawn/type/motion scheduler; its hit geometry and 2*object_state score formula are verified and tested, but synthetic enemies are deliberately not substituted.
 
 Build targets:
 

@@ -23,6 +23,7 @@ const STREAM_REBUILD_DISTANCE := 12
 var model := FlightModel.new()
 var world_tiles: Array = []
 var master_tiles: Array = []
+var metatiles: Array = []
 var interior_runtime_data: Dictionary = {}
 var tile_atlas_images: Array[Image] = []
 var interior_atlas_images: Array[Image] = []
@@ -39,6 +40,7 @@ var ground_sprite_textures := {}
 var encounter_sprite_textures := {}
 var encounter_entity: Sprite3D
 var stun_projectile: Sprite3D
+var flight_projectile: MeshInstance3D
 var camera: Camera3D
 var hud: Label
 var hud_panel: PanelContainer
@@ -75,7 +77,6 @@ var _touch_text_guard := false
 
 var gear_nodes := []
 var footprint_markers := []
-var bolts := []
 
 var obstacle_cells := {}
 var safe_material: StandardMaterial3D
@@ -222,6 +223,8 @@ func _physics_process(_delta: float) -> void:
         ground_blocked_bits = int(collision["blocked_bits"])
         ground_right_contact_code = int(collision["right_code"])
 
+    var flight_combat_events := _advance_flight_combat()
+
     var flight_special_code := -1
     if not model.ground_transition_flag:
         flight_special_code = _flight_special_contact_code()
@@ -238,8 +241,7 @@ func _physics_process(_delta: float) -> void:
     )
 
     if events["laser"]:
-        _spawn_laser()
-        status_message = "Laser fired"
+        status_message = "LAZER fired — recovered single-projectile state"
     if events["ground_transition_requested"]:
         status_message = "Landing committed — original $F4 transition flag set"
     if events["entered_ground"]:
@@ -280,13 +282,18 @@ func _physics_process(_delta: float) -> void:
     if events["endgame_triggered"]:
         status_message = "FINAL TRANSPORTER — recovered stage-5 ending gate reached; press Z/FIRE"
 
+    if bool(flight_combat_events.get("collision", false)):
+        if bool(flight_combat_events.get("destructible", false)):
+            status_message = "LAZER HIT — destructible world target +15"
+        else:
+            status_message = "LAZER IMPACT — collision class %d" % int(flight_combat_events.get("collision_class", 0))
+
     if kard_panel_frames > 0:
         kard_panel_frames -= 1
         if kard_panel_frames == 0 and kard_panel != null:
             kard_panel.visible = false
 
     _maybe_stream_world()
-    _update_bolts()
     _update_visuals()
     _sample_footprint()
     _update_hud()
@@ -628,6 +635,7 @@ func _load_world_data() -> void:
     if typeof(parsed) == TYPE_DICTIONARY:
         world_tiles = parsed.get("tiles", [])
         master_tiles = parsed.get("master_tiles", [])
+        metatiles = parsed.get("metatiles", [])
 
 
 func _load_interior_data() -> void:
@@ -799,7 +807,14 @@ func _build_ship() -> void:
     laser_material.emission = Color(1.0, 0.16, 0.04)
     laser_material.emission_energy_multiplier = 4.0
 
-
+    flight_projectile = MeshInstance3D.new()
+    flight_projectile.name = "FlightProjectile"
+    var laser_mesh := BoxMesh.new()
+    laser_mesh.size = Vector3(0.16, 0.16, 0.72)
+    flight_projectile.mesh = laser_mesh
+    flight_projectile.material_override = laser_material
+    flight_projectile.visible = false
+    add_child(flight_projectile)
 
 
 func _build_ground_player() -> void:
@@ -1117,6 +1132,105 @@ func _is_landing_tile(x: int, y: int) -> bool:
     return not (code >= 0x0D and code <= 0x10)
 
 
+
+func _advance_flight_combat() -> Dictionary:
+    var events := {
+        "moved": false,
+        "needs_collision": false,
+        "expired": false,
+        "explosion_advanced": false,
+        "collision": false,
+        "collision_class": 0,
+        "sample_index": -1,
+        "destructible": false,
+        "score_award": 0,
+        "world_mutated": false,
+        "old_master_id": -1,
+        "new_master_id": -1,
+    }
+
+    if model.ground_transition_flag or model.endgame_active():
+        return events
+
+    var advance_events: Dictionary = model.advance_flight_projectile()
+    for key in advance_events:
+        events[key] = advance_events[key]
+
+    if not bool(advance_events.get("needs_collision", false)):
+        return events
+
+    var top_left := model.projectile_collision_top_left_world_tile()
+    var samples := _flight_projectile_samples(top_left)
+    var master_macro := model.projectile_master_target_macro()
+    var hit_events: Dictionary = model.resolve_flight_projectile(samples)
+    for key in hit_events:
+        events[key] = hit_events[key]
+
+    if not bool(hit_events.get("destructible", false)):
+        return events
+
+    # The original $147F writes a transient 3x3 blast pattern into the
+    # current screen buffer. Do not persist that pattern into world source data;
+    # the projectile explosion state supplies the transient modern presentation.
+    var old_id := _master_tile_id(master_macro)
+    var new_id := model.flight_combat_model.destruction_replacement(old_id)
+    events["old_master_id"] = old_id
+    events["new_master_id"] = new_id
+    if new_id >= 0:
+        _replace_master_metatile(master_macro, new_id)
+        events["world_mutated"] = true
+    return events
+
+
+func _flight_projectile_samples(top_left: Vector2i) -> Array:
+    var samples: Array = []
+    for dy in range(3):
+        for dx in range(3):
+            samples.append(_tile_code(top_left.x + dx, top_left.y + dy))
+    return samples
+
+
+func _master_tile_id(macro: Vector2i) -> int:
+    if macro.y < 0 or macro.y >= master_tiles.size():
+        return -1
+    var row = master_tiles[macro.y]
+    if typeof(row) != TYPE_ARRAY or macro.x < 0 or macro.x >= row.size():
+        return -1
+    return int(row[macro.x]) & 0xFF
+
+
+func _replace_master_metatile(macro: Vector2i, new_id: int) -> void:
+    if macro.y < 0 or macro.y >= master_tiles.size():
+        return
+    if new_id < 0 or new_id >= metatiles.size():
+        return
+
+    var master_row: Array = master_tiles[macro.y]
+    if macro.x < 0 or macro.x >= master_row.size():
+        return
+
+    master_row[macro.x] = new_id & 0xFF
+    master_tiles[macro.y] = master_row
+    model.update_runtime_master_tile(macro, new_id)
+
+    var definition: Array = metatiles[new_id]
+    if definition.size() < 25:
+        return
+
+    for sy in range(5):
+        var wy := macro.y * 5 + sy
+        if wy < 0 or wy >= world_tiles.size():
+            continue
+        var row: Array = world_tiles[wy]
+        for sx in range(5):
+            var wx := macro.x * 5 + sx
+            if wx >= 0 and wx < row.size():
+                row[wx] = int(definition[sy * 5 + sx])
+        world_tiles[wy] = row
+
+    _rebuild_world_chunk(_current_world_tile())
+
+
 func _tile_code(wx: int, wy: int) -> int:
     if wy < 0 or wy >= world_tiles.size():
         return 0x0D
@@ -1406,6 +1520,27 @@ func _update_visuals() -> void:
                 stun_projectile.texture = encounter_sprite_textures[projectile_ptr]
             stun_projectile.position = _interior_pixel_to_world(model.encounter_model.projectile_position, 0.72)
 
+    if flight_projectile != null:
+        var flight_shot_visible := (
+            not model.ground_transition_flag
+            and not in_endgame
+            and model.flight_combat_model.projectile_active()
+        )
+        flight_projectile.visible = flight_shot_visible
+        if flight_shot_visible:
+            var shot = model.flight_combat_model
+            var viewport_origin := model.viewport_origin_tile()
+            var tile_x := float(viewport_origin.x) + float(shot.projectile_x - 6) / 4.0
+            var tile_y := float(viewport_origin.y) + float(shot.projectile_y - 0x2F) / 8.0
+            var shot_height := 1.0 + float(shot.projectile_height - FlightModel.HEIGHT_MIN) * HEIGHT_SCALE
+            flight_projectile.position = Vector3(
+                (tile_x - float(PLAYER_START_TILE.x)) * TILE_SIZE,
+                shot_height,
+                (tile_y - float(PLAYER_START_TILE.y)) * TILE_SIZE
+            )
+            flight_projectile.rotation.y = -float(shot.projectile_heading) * TAU / 16.0
+            flight_projectile.scale = Vector3.ONE * (1.8 if shot.projectile_exploding() else 1.0)
+
     if supply_panel != null:
         supply_panel.visible = model.in_supply_menu()
         if model.in_supply_menu():
@@ -1424,10 +1559,6 @@ func _update_visuals() -> void:
         kard_offer_panel.visible = in_interior and model.kard_offer_pending()
         if kard_offer_panel.visible:
             kard_offer_label.text = model.encounter_model.kard_offer_text(model.computer_model)
-
-    for bolt_data in bolts:
-        var bolt_node: MeshInstance3D = bolt_data["node"]
-        bolt_node.visible = not in_endgame
 
     if touch_root != null:
         touch_root.visible = touch_controls_enabled
@@ -1448,43 +1579,6 @@ func _update_visuals() -> void:
         focus = ground_player.position
     camera.position = focus + Vector3(8.0, 34.0, 8.0)
     camera.look_at(focus, Vector3.UP)
-
-
-func _spawn_laser() -> void:
-    var target := model.target_velocity()
-    var direction := Vector3(float(target.x), 0.0, float(target.y)).normalized()
-    if direction.length_squared() < 0.01:
-        direction = Vector3(0.0, 0.0, 1.0)
-
-    var bolt := MeshInstance3D.new()
-    var mesh := BoxMesh.new()
-    mesh.size = Vector3(0.12, 0.12, 0.72)
-    bolt.mesh = mesh
-    bolt.material_override = laser_material
-    bolt.position = ship.position + direction * 1.15
-    bolt.rotation.y = ship.rotation.y
-    add_child(bolt)
-
-    bolts.append({
-        "node": bolt,
-        "direction": direction,
-        "life": 80,
-    })
-
-
-func _update_bolts() -> void:
-    for i in range(bolts.size() - 1, -1, -1):
-        var bolt_data: Dictionary = bolts[i]
-        var bolt: MeshInstance3D = bolt_data["node"]
-        var direction: Vector3 = bolt_data["direction"]
-        bolt.position += direction * 0.48
-        bolt_data["life"] = int(bolt_data["life"]) - 1
-
-        if int(bolt_data["life"]) <= 0:
-            bolt.queue_free()
-            bolts.remove_at(i)
-        else:
-            bolts[i] = bolt_data
 
 
 func _update_supply_hud() -> void:

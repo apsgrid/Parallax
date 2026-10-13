@@ -367,3 +367,23 @@ Resolved edge case:
 The formerly open `$E720` path is now verified as the **STAY ABOARD** action from the recovered SHIP SUPPLY screen. EXIT SHIP is separately oxygen-gated before outdoor on-foot control begins. See `SUPPLY_STATE.md`.
 
 The Godot reference model now preserves the landing → supply/disembark → outdoor ground → return sequence and tests both STAY ABOARD and EXIT SHIP paths.
+
+
+## Verified flight combat / score production
+
+The resident single-laser and terrain-hit path is now reconstructed and implemented. Full details are in `FLIGHT_COMBAT_STATE.md` and `flight_combat_state_map.json`.
+
+Verified:
+- single projectile state `$0779-$077C` with heading snapshot at `$116B`;
+- recovered heading motion tables and exact screen bounds;
+- common `$0C1B` 3x3 terrain classifier with priority order `4,1,3,5,7,0,2,8,6`;
+- destructible terrain classes 2/3;
+- `$14A5` queues **15 points** in `$022D`;
+- direct laser master-map writeback is specifically `$F7 -> $00` because the blast loop reaches `$1A57` with X=9;
+- `$2275+` consumes the pending award into the six-digit score;
+- moving-object laser collision geometry and height bands at `$FBFF-$FC43`;
+- moving-object award formula is exactly `2 * $F828`.
+
+The Godot playable loop now feeds verified destructible-terrain +15 awards into `EndgameModel`, so the recovered initial best score `000010` can be beaten through ordinary play.
+
+Still open: exact three-slot moving-flight-object spawn/type/motion scheduler and presentation. No synthetic enemies are spawned until that scheduler is reconstructed.

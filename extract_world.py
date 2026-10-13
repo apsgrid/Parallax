@@ -12,6 +12,10 @@ macro=m[0xD000:0xE000] + m[0x9000:0xA400]
 assert len(macro)==96*96
 
 master=[list(macro[y*96:(y+1)*96]) for y in range(96)]
+metatiles=[
+    list(m[0x269C+mid*25:0x269C+(mid+1)*25])
+    for mid in range(256)
+]
 transport_destinations=[
     {"x":i%96,"y":i//96}
     for i,v in enumerate(macro)
@@ -39,6 +43,7 @@ payload={
     "master_width":96,
     "master_height":96,
     "master_tiles":master,
+    "metatiles":metatiles,
     "transport_destinations":transport_destinations,
     "tiles":world,
 }

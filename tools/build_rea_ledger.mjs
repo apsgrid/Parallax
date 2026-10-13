@@ -36,13 +36,13 @@ const findings = [
     next: ["Correlate classifier return classes with world locations and visible glyphs.", "Trace each class into collision masks and gameplay responses."]
   },
   {
-    id: "combat.score-production",
-    title: "Reconstruct natural flight projectile/enemy score production in the modern playable loop",
+    id: "combat.moving-object-scheduler",
+    title: "Reconstruct the complete three-slot moving flight-object scheduler and presentation",
     family: "flight-combat",
-    location: "$0226-$022D score state; projectile hit path $12F0/$147F; moving-object hit path $FC43-$FC4C",
-    finding: "The progression-5 transporter and ending are reconstructed and implemented, including the unique winning $77 destination, $030D=$7B overlay handoff, strict current-score > stored-best qualification, five-character name entry and title return. The original score digits and two score-award families are identified, but the modern visual laser/enemy layer does not yet reproduce the collision-confirmed award events. Points must not be invented simply for firing.",
-    sources: ["ENDGAME_STATE.md", "endgame_state_map.json", "Godot/scripts/endgame_model.gd", "Godot/tests/test_endgame_model.gd", "Godot/tests/test_endgame_integration.gd", "verify_endgame_state.py", "trace_score_awards.py", "trace_score_system.py"],
-    next: ["Trace the exact flight projectile collision response classes that call $147F and their score values.", "Reconstruct moving enemy/object types feeding $F828 and the 2*object_type award at $FC4C.", "Wire only verified hit awards into EndgameModel.add_score and capture original VICE score cases."]
+    location: "$F700/$F874 object loop; $F825-$F864 three-slot records; $FBFF-$FC4C laser-hit endpoint",
+    finding: "Resident single-laser motion, terrain collision priority/classes, destructible class-2/3 response, +15 score production, direct F7->00 laser writeback, the six-digit score consumer, moving-object height bands, signed -11..+9 hit window and 2*$F828 award are verified. Godot now produces authentic +15 score during ordinary terrain combat, so the initial 000010 record is naturally beatable. The remaining combat gap is the original three-slot object spawn/type/motion/render scheduler; no substitute enemies are spawned.",
+    sources: ["FLIGHT_COMBAT_STATE.md", "flight_combat_state_map.json", "Godot/scripts/flight_combat_model.gd", "Godot/scripts/flight_model.gd", "Godot/tests/test_flight_combat_model.gd", "Godot/tests/test_flight_combat_integration.gd", "verify_flight_combat.py", "trace_flight_combat.py", "trace_flight_object_loop.py", "trace_flight_objects.py"],
+    next: ["Reconstruct $F874 three-slot record scheduling and spawn/type selection from the original random/state tables.", "Implement original object movement/render state and connect it to the already-verified $FBFF-$FC4C hit primitive.", "Capture one controlled VICE +15 terrain event and one moving-object hit for runtime parity."]
   },
   {
     id: "ground.fine-scroll-collision",

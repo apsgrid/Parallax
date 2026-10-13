@@ -7,6 +7,7 @@ const InteriorModel = preload("res://scripts/interior_model.gd")
 const ComputerModel = preload("res://scripts/computer_model.gd")
 const EncounterModel = preload("res://scripts/encounter_model.gd")
 const EndgameModel = preload("res://scripts/endgame_model.gd")
+const FlightCombatModel = preload("res://scripts/flight_combat_model.gd")
 
 const GROUND_PHASE_NONE := 0
 const GROUND_PHASE_SUPPLY := 1
@@ -70,6 +71,7 @@ var interior_model := InteriorModel.new()
 var computer_model := ComputerModel.new()
 var encounter_model := EncounterModel.new()
 var endgame_model := EndgameModel.new()
+var flight_combat_model := FlightCombatModel.new()
 
 var _input_counters := [0, 0, 0, 0]
 
@@ -101,6 +103,7 @@ func reset() -> void:
     computer_model.reset_all()
     encounter_model.reset_all()
     endgame_model.reset_game()
+    flight_combat_model.reset()
     _input_counters = [0, 0, 0, 0]
 
 
@@ -331,12 +334,13 @@ func step(
     else:
         acceleration_step = ACCEL_NORMAL
 
-    if fire_pressed:
+    var fire_action := fire_pressed or fire_down
+    if fire_action:
         if landing_ready:
             if vx_hi == 0 and vy_hi == 0:
                 ground_transition_flag = true
                 events["ground_transition_requested"] = true
-        else:
+        elif flight_combat_model.fire(heading, flight_height):
             events["laser"] = true
 
     world_x += vx_hi
@@ -383,6 +387,44 @@ func _activate_transporter() -> Dictionary:
     vx_hi = 0
     vy_hi = 0
     return transport
+
+
+func advance_flight_projectile() -> Dictionary:
+    if ground_transition_flag or endgame_model.active():
+        return {
+            "moved": false,
+            "needs_collision": false,
+            "expired": false,
+            "explosion_advanced": false,
+        }
+    return flight_combat_model.advance()
+
+
+func resolve_flight_projectile(samples: Array) -> Dictionary:
+    var events: Dictionary = flight_combat_model.resolve_terrain(samples)
+    var score_award := int(events.get("score_award", 0))
+    if score_award > 0:
+        endgame_model.add_score(score_award)
+    return events
+
+
+func projectile_collision_top_left_world_tile() -> Vector2i:
+    return viewport_origin_tile() + flight_combat_model.collision_top_left_screen_cell()
+
+
+func projectile_master_target_macro() -> Vector2i:
+    var tile := viewport_origin_tile() + flight_combat_model.master_target_screen_cell()
+    return Vector2i(floori(float(tile.x) / 5.0), floori(float(tile.y) / 5.0))
+
+
+func update_runtime_master_tile(macro: Vector2i, metatile_id: int) -> void:
+    if macro.y < 0 or macro.y >= endgame_model.master_tiles.size():
+        return
+    var row: Array = endgame_model.master_tiles[macro.y]
+    if macro.x < 0 or macro.x >= row.size():
+        return
+    row[macro.x] = metatile_id & 0xFF
+    endgame_model.master_tiles[macro.y] = row
 
 
 func endgame_active() -> bool:

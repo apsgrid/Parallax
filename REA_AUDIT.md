@@ -21,7 +21,7 @@ Therefore REA must not be cited as the decompiler/disassembler authority for Par
 ## REA historical source graph
 
 WSL `import-reference-source` successfully created a `HistoricalSourceGraph` for the Godot reconstruction.
-- root SHA-256: `c732d499338b0f2e282a837e819a4f9d59b1dc5872eb27a9f3a9fc395f997056`
+- root SHA-256: `c3b140eccad904b642803d6bd4a9f29e205413c3fa380204ae3006e54937b3fa`
 - authority: `historical-reference`
 - includes hashed source, tests, project files, local generated world/graphics assets and documentation at audit time.
 
@@ -30,8 +30,8 @@ Generated graph JSON remains local under `rea_audit/`.
 ## REA reconstruction obligation ledger
 
 Authenticated review Evidence was generated with REA's own `createEvidence()` and `createEvidenceBundle()` implementation.
-- ledger ID: `rol_0b46938d3dcdf49018e29e3350b3207fc6053b88def9f484457ea084b76e04e1`
-- closure digest: `c8489466201f8103f3737cf58cc9f53f3ff7a8540e9c2d606af3ec9842cb9f77`
+- ledger ID: `rol_56bc67be9498f13c864ba7d36bca7fe953527d37d7c1197d844990af98d8c0b4`
+- closure digest: `01f3129847d5d2f661257b8ea1752f7756d5b7b3b9ceddd13a677aabc53efb31`
 - status: `unknown` (intentionally conservative)
 - required obligations: 6
 - verified: 0
@@ -41,13 +41,13 @@ Tracked obligations:
 1. shield behavior beyond toggle/status presentation;
 2. remaining local entity types 1 and 3 and their player-facing effects;
 3. exact collision-tile taxonomy;
-4. natural flight projectile/enemy score production feeding the recovered ending qualification;
+4. complete three-slot moving-flight-object scheduler/presentation for the verified 2*object_state hit awards;
 5. controlled runtime parity for reconstructed outdoor/interior/scientist/endgame timing;
 6. exact ship/shadow projection ownership.
 
 ## Funes validation
 
-Current project memory source validates as 35 turns / 150 chunks / 0 rejected / 0 duplicate IDs before indexing.
+Current project memory source validates as 37 turns / 166 chunks / 0 rejected / 0 duplicate IDs before indexing.
 Recall checks correctly retrieved:
 - corrected Stage-5 range, byte count and SHA-256;
 - post-startup viewport/player coordinates and landing-ready conditions;
@@ -222,4 +222,22 @@ The corrected world extractor now accounts for the gameplay overlay swap, elimin
 
 Static authority is checked independently by `verify_endgame_state.py` and `verify_world_overlay_swap.py`. Deterministic coverage is in `test_endgame_model.gd` and `test_endgame_integration.gd`.
 
-The remaining score-related obligation is deliberately narrower: natural score production from verified flight projectile/destructible and moving-enemy/object hits. The endgame score gate itself is complete, and points are not invented for actions whose scoring semantics are not yet reconstructed.
+Natural score qualification is now implemented through the verified resident laser/destructible path: a class-2/3 destructible hit queues +15 and feeds the same six-digit score used by the ending. The remaining combat obligation is narrower still: reconstruct the original three-slot moving-object scheduler so the already-verified `2*object_state` awards occur naturally. No synthetic targets are introduced.
+
+## Flight combat / score-production milestone
+
+Static and model evidence now resolves the resident score-producing laser paths:
+
+- `$10FC+` fire gate and `$0779-$077C` single projectile state;
+- exact `$0E20/$0DF0` projectile vectors and bounds;
+- `$0C91` 3×3 terrain collision priority/classes;
+- collision response records at `$1349-$135C`;
+- destructible classes 2/3 call `$147F`;
+- `$14A5` queues 15 points in `$022D`;
+- the `$147F` blast loop exits with X=9, so the direct `$1A57` persistent writeback is `$F7 -> $00`;
+- `$2275+` consumes the pending award into the six-digit score;
+- `$FBFF-$FC43` moving-object collision uses current `$0778` height, category bands from `$FC3B-$FC42`, signed -11..+9 X/Y windows, and queues `2*$F828`.
+
+Godot now uses the verified single-projectile model and applies +15 only on recovered destructible terrain collisions. One such hit raises score from 000000 to 000015, naturally exceeding the recovered initial best score 000010.
+
+Remaining combat obligation: reconstruct and present the authentic three-slot moving-object scheduler/spawn/type/motion state before enabling enemy/object targets. The verified hit/award primitive exists, but no synthetic enemy layer is introduced.

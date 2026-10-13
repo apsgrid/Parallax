@@ -11,6 +11,7 @@ docs=[
     ("building","BUILDING.md"),
     ("reverse-engineering-notes","RE_NOTES.md"),
     ("flight-state","FLIGHT_STATE.md"),
+    ("flight-combat-state","FLIGHT_COMBAT_STATE.md"),
     ("transition-state","TRANSITION_STATE.md"),
     ("supply-state","SUPPLY_STATE.md"),
     ("ground-state","GROUND_STATE.md"),
