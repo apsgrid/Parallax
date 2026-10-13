@@ -21,7 +21,7 @@ Therefore REA must not be cited as the decompiler/disassembler authority for Par
 ## REA historical source graph
 
 WSL `import-reference-source` successfully created a `HistoricalSourceGraph` for the Godot reconstruction.
-- root SHA-256: `09e0d2603abcf225442e14e7f8db98fe8afa031c0dc8d0892a94c5a975052e43`
+- root SHA-256: `c732d499338b0f2e282a837e819a4f9d59b1dc5872eb27a9f3a9fc395f997056`
 - authority: `historical-reference`
 - includes hashed source, tests, project files, local generated world/graphics assets and documentation at audit time.
 
@@ -30,8 +30,8 @@ Generated graph JSON remains local under `rea_audit/`.
 ## REA reconstruction obligation ledger
 
 Authenticated review Evidence was generated with REA's own `createEvidence()` and `createEvidenceBundle()` implementation.
-- ledger ID: `rol_c6ce00982b80553bc43a6d3284919f3c5d2fed9f5da688b9ff09eec7a1599dda`
-- closure digest: `39d24b8513b60fdda1387fefac72c651107a69e13830a70ab835dfb587e7a91f`
+- ledger ID: `rol_0b46938d3dcdf49018e29e3350b3207fc6053b88def9f484457ea084b76e04e1`
+- closure digest: `c8489466201f8103f3737cf58cc9f53f3ff7a8540e9c2d606af3ec9842cb9f77`
 - status: `unknown` (intentionally conservative)
 - required obligations: 6
 - verified: 0
@@ -41,13 +41,13 @@ Tracked obligations:
 1. shield behavior beyond toggle/status presentation;
 2. remaining local entity types 1 and 3 and their player-facing effects;
 3. exact collision-tile taxonomy;
-4. progression-5/endgame behavior after the five regional passwords;
-5. controlled runtime parity for reconstructed outdoor/interior/scientist movement and terminal timing;
+4. natural flight projectile/enemy score production feeding the recovered ending qualification;
+5. controlled runtime parity for reconstructed outdoor/interior/scientist/endgame timing;
 6. exact ship/shadow projection ownership.
 
 ## Funes validation
 
-Current project memory source validates as 31 turns / 126 chunks / 0 rejected / 0 duplicate IDs before indexing.
+Current project memory source validates as 33 turns / 145 chunks / 0 rejected / 0 duplicate IDs before indexing.
 Recall checks correctly retrieved:
 - corrected Stage-5 range, byte count and SHA-256;
 - post-startup viewport/player coordinates and landing-ready conditions;
@@ -58,7 +58,11 @@ Recall checks correctly retrieved:
 - scientist-present `$E9E5 == 6` and solved/unsolved return behavior;
 - type 4 roaming scientist → type 5 stunned scientist → type 6 accompanying scientist;
 - stun-gun one-ammunition cost, four-pixel projectile and -6..+5 entity hit window;
-- generated-KARD Y/N interaction and the type-6 widened return gate.
+- generated-KARD Y/N interaction and the type-6 widened return gate;
+- corrected runtime master-map overlay swap and 18 `$77` transporter destinations;
+- unique winning marker `(90,59)` -> final viewport macro `(86,57)` after `GLOBE`;
+- `$030D=$7B` ending-overlay handoff, strict `score > 000010` qualification and `CHRIX` best-score record;
+- recovered `WELL DONE CAP'N` / `MEGA HERO` ending and five-character UP/DOWN/FIRE name entry.
 
 Funes is a retrieval layer, not original-game authority.
 
@@ -160,7 +164,7 @@ Godot now implements this state in ComputerModel, integrates it through FlightMo
 
 Deterministic coverage now includes `test_computer_model.gd`, `test_computer_integration.gd` and the full vertical-slice test. The static verifier `verify_computer_state.py` independently checks the canonical runtime bytes.
 
-The scientist/NPC stun-combat path that naturally reaches `$F061` has since been reconstructed and implemented. The remaining entity obligation is now limited to local entity types 1 and 3 and their exact player-facing effects. Progression-5/endgame remains a separate open obligation.
+The scientist/NPC stun-combat path that naturally reaches `$F061` has since been reconstructed and implemented. The remaining entity obligation is limited to local entity types 1 and 3 and their exact player-facing effects. The progression-5 transporter and original ending have also been reconstructed and implemented; the separate remaining combat obligation is natural score production from verified projectile/enemy hits.
 
 ## Second-pass finding: scientist stun and natural KARD acquisition
 
@@ -188,3 +192,34 @@ Verified and implemented findings now include:
 Static authority is independently checked by `verify_scientist_encounter.py`. Deterministic coverage is in `test_encounter_model.gd` and `test_scientist_loop.gd`.
 
 The REA entity obligation has moved to the genuinely unresolved local entity types 1 and 3. Their shared movement/spawn mechanics are known, and a stun hit removes them rather than entering the scientist lifecycle, but their exact identities, attack/damage behavior and player-facing effects remain open.
+
+## Second-pass finding: progression-5 transporter and original ending
+
+The progression-5/endgame path is no longer an open reconstruction obligation.
+
+Verified and implemented findings now include:
+- successful `GLOBE` advances progression `$030E` to exactly 5;
+- flight special tile `$70` dispatches to the transporter at `$1714` when the recovered flight-height gate is met;
+- transporter re-entry cooldown is exactly 50 frames via `$191D = $32`;
+- the runtime 96x96 master map is reconstructed correctly across the `$8000-$8FFF` / RAM-under-I/O swap;
+- transporter destinations are master-map metatile `$77`, with 18 markers in the corrected runtime map;
+- the persistent low-nibble selector at `$17C8/$17C9` chooses row-major destinations within the current vertical band;
+- marker relocation is `(mx-4,my+2)` before twenty +8 scroll frames, yielding final viewport macro `(mx-4,my-2)`;
+- `$089C` requires progression exactly 5, macro X >= 80 and macro Y < 80;
+- the unique winning marker is `(90,59)`, producing final viewport macro `(86,57)`;
+- the final effect waits for FIRE, writes `$030D=$7B`, and restores the title/ending overlay through the `$CFxx` swap trampoline;
+- the restored overlay recognizes `$030D=$7B` and enters the dedicated ending route;
+- current score is six ASCII decimal digits and must strictly beat the mutable best-score record;
+- the built-in best score is `000010` under the name `CHRIX`;
+- the original congratulatory text includes `WELL DONE CAP'N` and the `MEGA HERO` line;
+- the original prompt is spelled `ENTRE ... -----`;
+- five-character name entry uses UP/DOWN to change a six-bit screen code and FIRE to accept after release arming;
+- accepted score/name replace the best-score record before the original title return path.
+
+`EndgameModel` now implements the transporter selector/cooldown, exact final coordinate gate, score qualification, ending state, five-character entry, best-score update and title-return state. `FlightModel` integrates transporter relocation into recovered scroll coordinates; `main.gd` detects tile `$70` in the original flight cross sample and presents the ending UI.
+
+The corrected world extractor now accounts for the gameplay overlay swap, eliminating the former false interpretation of `$8000-$8FFF` as master-map bytes in the pre-swap snapshot.
+
+Static authority is checked independently by `verify_endgame_state.py` and `verify_world_overlay_swap.py`. Deterministic coverage is in `test_endgame_model.gd` and `test_endgame_integration.gd`.
+
+The remaining score-related obligation is deliberately narrower: natural score production from verified flight projectile/destructible and moving-enemy/object hits. The endgame score gate itself is complete, and points are not invented for actions whose scoring semantics are not yet reconstructed.

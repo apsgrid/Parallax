@@ -361,8 +361,8 @@ The normal round trip is now reconstructed in detail; see `TRANSITION_STATE.md` 
 - Normal return requires player-to-craft X/Y deltas in -7..+7.
 - Successful return clears `$E049/$F4`, restores `$F3=1`, restores craft state, and returns to normal flight on the next main-loop tick.
 
-Open edge cases:
-- `$E9E5 == 6` widens the negative X return range to -27; exact purpose remains unknown.
+Resolved edge case:
+- `$E9E5 == 6` is the verified accompanying-scientist state. It widens only the negative X return-to-craft bound to -27; the scientist/KARD lifecycle and return reconciliation are documented in `ENCOUNTER_STATE.md` and `COMPUTER_STATE.md`.
 
 The formerly open `$E720` path is now verified as the **STAY ABOARD** action from the recovered SHIP SUPPLY screen. EXIT SHIP is separately oxygen-gated before outdoor on-foot control begins. See `SUPPLY_STATE.md`.
 

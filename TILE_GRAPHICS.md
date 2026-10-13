@@ -60,14 +60,16 @@ The Godot atlas generator reproduces this mapping from the original bytes at `$4
 
 ## Recovered glyph facts
 
-The expanded world uses:
-- 218 distinct character codes
-- 155 distinct glyph bitmaps
+The corrected expanded world uses:
+- 202 distinct character codes
+- 146 distinct glyph bitmaps
+
+The previous 218/155 counts included title-overlay bytes that had been misread as the first block of the master map before the `$CFA3` runtime swap was understood.
 
 Several character codes deliberately share identical artwork while retaining separate gameplay semantics.
 
 Verified all-zero / visually blank glyph codes used by the world include:
-`0D 0E 0F 10 20 44 5D 80-89 8B-9C FE FF`
+`0D 0E 0F 10 20 44 5D 80-89 8B-9C FF`
 
 Important examples:
 - `$2A = AA AA AA AA AA AA AA AA` — solid shared world-band colour

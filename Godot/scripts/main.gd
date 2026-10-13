@@ -6,6 +6,7 @@ const SupplyModel = preload("res://scripts/supply_model.gd")
 const InteriorModel = preload("res://scripts/interior_model.gd")
 const ComputerModel = preload("res://scripts/computer_model.gd")
 const EncounterModel = preload("res://scripts/encounter_model.gd")
+const EndgameModel = preload("res://scripts/endgame_model.gd")
 
 const TILE_SIZE := 2.0
 const SIM_UNITS_PER_TILE := 8.0
@@ -21,6 +22,7 @@ const STREAM_REBUILD_DISTANCE := 12
 
 var model := FlightModel.new()
 var world_tiles: Array = []
+var master_tiles: Array = []
 var interior_runtime_data: Dictionary = {}
 var tile_atlas_images: Array[Image] = []
 var interior_atlas_images: Array[Image] = []
@@ -49,6 +51,8 @@ var kard_label: Label
 var kard_panel_frames := 0
 var kard_offer_panel: PanelContainer
 var kard_offer_label: Label
+var endgame_panel: PanelContainer
+var endgame_label: Label
 var gear_nodes := []
 var footprint_markers := []
 var bolts := []
@@ -77,6 +81,7 @@ func _ready() -> void:
     _load_world_data()
     _load_interior_data()
     model.configure_interior_runtime(interior_runtime_data)
+    model.configure_world_runtime(master_tiles)
     _load_tile_atlases()
     _load_interior_atlases()
     _load_ground_sprites()
@@ -93,6 +98,7 @@ func _ready() -> void:
     _build_terminal_hud()
     _build_kard_hud()
     _build_kard_offer_hud()
+    _build_endgame_hud()
     _update_visuals()
     _update_hud()
 
@@ -111,6 +117,30 @@ func _physics_process(_delta: float) -> void:
     if not offer_active and (Input.is_key_pressed(KEY_UP) or (not terminal_active and Input.is_key_pressed(KEY_W))):
         input_bits |= 0x08
 
+    var fire_now := Input.is_key_pressed(KEY_Z)
+    var fire_pressed := fire_now and not last_fire
+    last_fire = fire_now
+
+    var reset_now := Input.is_key_pressed(KEY_R)
+    if reset_now and not last_reset:
+        model.reset()
+        status_message = "Flight state reset"
+    last_reset = reset_now
+
+    if model.endgame_active():
+        var ending_events: Dictionary = model.step_endgame(input_bits, fire_now)
+        if ending_events["ending_overlay_opened"]:
+            status_message = "MEGA HERO - recovered ending/name-entry overlay"
+        if ending_events["score_disqualified"]:
+            status_message = "Score did not beat TODAYS BESTEST SCORE - returned to title"
+        if ending_events["name_accepted"]:
+            status_message = "ENDING - name character accepted"
+        if ending_events["title_returned"] and not ending_events["score_disqualified"]:
+            status_message = "TODAYS BESTEST SCORE updated - original title return reached"
+        _update_visuals()
+        _update_hud()
+        return
+
     var gear_now := Input.is_key_pressed(KEY_SPACE)
     if gear_now and not last_gear:
         model.toggle_landing_gear()
@@ -122,12 +152,6 @@ func _physics_process(_delta: float) -> void:
         model.toggle_speed_mode()
         status_message = "Recovered velocity table mode %d" % model.speed_mode
     last_mode = mode_now
-
-    var reset_now := Input.is_key_pressed(KEY_R)
-    if reset_now and not last_reset:
-        model.reset()
-        status_message = "Flight state reset"
-    last_reset = reset_now
 
     var shield_now := Input.is_key_pressed(KEY_F7)
     if shield_now and not last_shield:
@@ -154,16 +178,16 @@ func _physics_process(_delta: float) -> void:
             marker.visible = debug_footprint_visible
     last_debug_footprint = debug_footprint_now
 
-    var fire_now := Input.is_key_pressed(KEY_Z)
-    var fire_pressed := fire_now and not last_fire
-    last_fire = fire_now
-
     var ground_blocked_bits := 0
     var ground_right_contact_code := -1
     if model.on_foot():
         var collision := _ground_collision_bridge()
         ground_blocked_bits = int(collision["blocked_bits"])
         ground_right_contact_code = int(collision["right_code"])
+
+    var flight_special_code := -1
+    if not model.ground_transition_flag:
+        flight_special_code = _flight_special_contact_code()
 
     var safe_cells := _sample_footprint()
     var events: Dictionary = model.step(
@@ -172,7 +196,8 @@ func _physics_process(_delta: float) -> void:
         safe_cells,
         ground_blocked_bits,
         ground_right_contact_code,
-        fire_now
+        fire_now,
+        flight_special_code
     )
 
     if events["laser"]:
@@ -212,6 +237,11 @@ func _physics_process(_delta: float) -> void:
         status_message = "%s — recovered terminal interaction" % InteriorModel.terminal_name(int(events["interior_terminal_kind"]))
     if events["exited_interior"]:
         status_message = "EXIT STRUCTURE — outdoor state restored"
+    if events["transported"]:
+        var destination: Vector2i = events["transport_destination_macro"]
+        status_message = "TRANSPORTER — relocated to macro (%d,%d)" % [destination.x, destination.y]
+    if events["endgame_triggered"]:
+        status_message = "FINAL TRANSPORTER — recovered stage-5 ending gate reached; press Z/FIRE"
 
     if kard_panel_frames > 0:
         kard_panel_frames -= 1
@@ -366,6 +396,7 @@ func _load_world_data() -> void:
     var parsed = JSON.parse_string(file.get_as_text())
     if typeof(parsed) == TYPE_DICTIONARY:
         world_tiles = parsed.get("tiles", [])
+        master_tiles = parsed.get("master_tiles", [])
 
 
 func _load_interior_data() -> void:
@@ -759,6 +790,60 @@ func _build_kard_offer_hud() -> void:
     kard_offer_panel.add_child(kard_offer_label)
 
 
+func _build_endgame_hud() -> void:
+    var canvas := CanvasLayer.new()
+    canvas.layer = 9
+    add_child(canvas)
+
+    endgame_panel = PanelContainer.new()
+    endgame_panel.position = Vector2(250, 92)
+    endgame_panel.custom_minimum_size = Vector2(780, 530)
+
+    var style := StyleBoxFlat.new()
+    style.bg_color = Color(0.004, 0.006, 0.010, 0.98)
+    style.border_width_left = 3
+    style.border_width_top = 3
+    style.border_width_right = 3
+    style.border_width_bottom = 3
+    style.border_color = Color(0.88, 0.86, 0.56, 0.98)
+    style.corner_radius_top_left = 6
+    style.corner_radius_top_right = 6
+    style.corner_radius_bottom_left = 6
+    style.corner_radius_bottom_right = 6
+    endgame_panel.add_theme_stylebox_override("panel", style)
+    endgame_panel.visible = false
+    canvas.add_child(endgame_panel)
+
+    endgame_label = Label.new()
+    endgame_label.custom_minimum_size = Vector2(740, 490)
+    endgame_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    endgame_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+    endgame_label.add_theme_font_size_override("font_size", 24)
+    endgame_label.add_theme_color_override("font_color", Color(0.96, 0.95, 0.78))
+    endgame_label.add_theme_constant_override("line_spacing", 7)
+    endgame_panel.add_child(endgame_label)
+
+
+func _update_endgame_hud() -> void:
+    if endgame_panel == null:
+        return
+    var e = model.endgame_model
+    endgame_panel.visible = e.active()
+    if not endgame_panel.visible:
+        return
+
+    match e.state:
+        EndgameModel.STATE_FINAL_EFFECT_WAIT_FIRE:
+            endgame_label.text = "SCORE  %s\n\nFINAL TRANSPORTER\n\nZ / FIRE" % e.score_text()
+        EndgameModel.STATE_NAME_ENTRY:
+            endgame_label.text = "SCORE  %s\n\n%s\n\nUP / DOWN SELECT   Z / FIRE ACCEPT" % [
+                e.score_text(),
+                e.ending_message()
+            ]
+        EndgameModel.STATE_TITLE_RETURN:
+            endgame_label.text = "PARALLAX\n\n%s\n\nR  NEW GAME" % e.title_return_message()
+
+
 func _update_terminal_hud() -> void:
     var c = model.computer_model
     var header := "CREDITS %02d   KARDS %d   PASS %s   STAGE %d/5\n\n" % [
@@ -835,6 +920,23 @@ func _current_world_tile() -> Vector2i:
         PLAYER_START_TILE.x + floori(float(-model.world_x) / SIM_UNITS_PER_TILE),
         PLAYER_START_TILE.y + floori(float(-model.world_y) / SIM_UNITS_PER_TILE)
     )
+
+
+func _flight_special_contact_code() -> int:
+    # $0FD0-$0FD4 checks the cross-shaped five cells from the 3x3 flight
+    # footprint for tile $70 after the normal collision sampler returns zero.
+    var center := _current_world_tile()
+    var offsets := [
+        Vector2i(0, -1),
+        Vector2i(-1, 0),
+        Vector2i.ZERO,
+        Vector2i(1, 0),
+        Vector2i(0, 1),
+    ]
+    for offset in offsets:
+        if _tile_code(center.x + offset.x, center.y + offset.y) == EndgameModel.TRANSPORT_TRIGGER_TILE:
+            return EndgameModel.TRANSPORT_TRIGGER_TILE
+    return -1
 
 
 func _ground_screen_origin_tile() -> Vector2i:
@@ -1014,6 +1116,7 @@ func _interior_pixel_to_world(position_value: Vector2i, y_value: float = 0.65) -
 
 func _update_visuals() -> void:
     var in_interior := model.in_interior()
+    var in_endgame := model.endgame_active()
     var y_height := 0.44 if model.landed else 1.0 + float(model.flight_height - FlightModel.HEIGHT_MIN) * HEIGHT_SCALE
     ship.position = Vector3(
         float(-model.world_x) * WORLD_SCALE,
@@ -1021,17 +1124,17 @@ func _update_visuals() -> void:
         float(-model.world_y) * WORLD_SCALE
     )
     ship.rotation.y = -float(model.heading) * TAU / 16.0
-    ship.visible = not in_interior
+    ship.visible = not in_interior and not in_endgame
 
     if world_root != null:
-        world_root.visible = not in_interior
+        world_root.visible = not in_interior and not in_endgame
     if interior_root != null:
-        interior_root.visible = in_interior
+        interior_root.visible = in_interior and not in_endgame
 
     for leg in gear_nodes:
-        leg.visible = model.landing_gear and not in_interior
+        leg.visible = model.landing_gear and not in_interior and not in_endgame
 
-    ground_player.visible = model.on_foot() or in_interior
+    ground_player.visible = (model.on_foot() or in_interior) and not in_endgame
     if model.on_foot():
         ground_player.position = ship.position + Vector3(
             float(model.ground_model.player_offset.x) * WORLD_SCALE,
@@ -1090,6 +1193,12 @@ func _update_visuals() -> void:
         kard_offer_panel.visible = in_interior and model.kard_offer_pending()
         if kard_offer_panel.visible:
             kard_offer_label.text = model.encounter_model.kard_offer_text(model.computer_model)
+
+    for bolt_data in bolts:
+        var bolt_node: MeshInstance3D = bolt_data["node"]
+        bolt_node.visible = not in_endgame
+
+    _update_endgame_hud()
 
     var focus := ship.position
     if model.on_foot() or in_interior:
@@ -1175,7 +1284,9 @@ func _update_hud() -> void:
     var target := model.target_velocity()
     var heading_degrees := float(model.heading) * 22.5
     var state_label := "FLIGHT"
-    if model.in_supply_menu():
+    if model.endgame_active():
+        state_label = "ENDING"
+    elif model.in_supply_menu():
         state_label = "SUPPLY"
     elif model.in_interior():
         state_label = "INTERIOR / TERMINAL" if model.interior_model.terminal_open else "INTERIOR"
@@ -1199,6 +1310,12 @@ func _update_hud() -> void:
         + "Shields          %s\n" % ("ON" if shields_on else "OFF")
         + "Scroll accum      %d, %d original units\n" % [model.world_x, model.world_y]
         + "World tile        %d, %d\n" % [_current_world_tile().x, _current_world_tile().y]
+        + "Viewport macro    %d, %d\n" % [model.viewport_macro().x, model.viewport_macro().y]
+        + "Score             %s   best %s %s\n" % [
+            model.endgame_model.score_text(),
+            model.endgame_model.high_score_text(),
+            model.endgame_model.high_score_name
+        ]
         + "$F4 ground flag  %s\n" % ("SET" if model.ground_transition_flag else "clear")
         + "$F3 flight mode  %s\n" % ("1" if model.flight_raster_mode else "0")
         + "$E049 init guard %s\n" % ("SET" if model.ground_initialized else "clear")

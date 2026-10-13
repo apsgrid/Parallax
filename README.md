@@ -53,20 +53,20 @@ The original flight controls are now matched to code: RIGHT/LEFT rotate through 
 
 ## Next reverse-engineering targets
 
-Completed core milestones now include the heading tables, 480×480 world format, flight charset/palette, deterministic flight reference model, the normal flight ↔ ground round trip, SHIP SUPPLY/disembark, byte-aligned outdoor collision, on-foot controls/sprites, the recovered `$C1-$C3 -> $E444` interior layer, the complete KARD/bank/shop/password/RETURN computer state, and the scientist stun → KARD offer → capture loop documented in `ENCOUNTER_STATE.md`.
+Completed core milestones now include the heading tables, corrected overlay-swapped 480×480 world, flight charset/palette, deterministic flight reference model, the normal flight ↔ ground round trip, SHIP SUPPLY/disembark, byte-aligned outdoor collision, on-foot controls/sprites, the recovered `$C1-$C3 -> $E444` interior layer, the complete KARD/bank/shop/password/RETURN computer state, the scientist stun → KARD offer → capture loop, and the progression-5 transporter/ending path documented in `ENDGAME_STATE.md`.
 
 The first complete gameplay vertical slice is now executable and regression-tested:
 
 **fly → land → SHIP SUPPLY → EXIT SHIP → walk → enter structure → interact with terminal → leave structure → return to craft → take off**
 
-Current targets beyond the completed scientist/KARD milestone:
+Current targets beyond the completed endgame milestone:
 
-1. Complete the progression-5 endgame/ending condition after the five regional passwords.
+1. Reconstruct natural flight projectile/destructible and enemy/object score production so the exact `> TODAYS BESTEST SCORE` ending qualification is reachable through modern gameplay without test injection.
 2. Resolve the exact identities, behavior and player effects of the remaining local entity types 1 and 3.
 3. Assign exact semantics to the remaining flight collision tile classes.
 4. Identify sprite ownership for ship, shadow, projectiles and landing gear.
 5. Finish flight laser/enemy damage behavior and test whether shields have any gameplay effect.
-6. Verify interior raster/palette timing against the original; the `$80-$BF` charset swap is reproduced.
-7. Capture controlled original VICE parity cases for outdoor collision, scientist stun/KARD capture and terminal transactions.
+6. Verify interior and ending raster/palette timing against the original.
+7. Capture controlled original VICE parity cases for outdoor collision, scientist stun/KARD capture, terminal transactions and the final transporter/ending sequence.
 
 The objective is not to port opaque 6502 code directly. The objective is to recover the game's rules, data and state transitions accurately enough to reimplement them cleanly in a modern engine.

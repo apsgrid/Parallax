@@ -40,8 +40,15 @@ Current prototype:
 - playable generated-KARD `TAKE ? Y/N` prompt with original two-slot inventory behavior
 - recovered type-6 scientist follower and widened -27 X return-to-craft gate
 - executable scientist loop: stun → KARD offer → capture → escort → return scientist aboard
+- corrected runtime 96×96 master map using the original $CFA3 overlay/world swap, fixing the first 4096 master-map bytes
+- recovered $70 flight transporter triggers and $77 master-map destination scan
+- recovered persistent low-nibble transporter selector and exact 50-frame cooldown
+- recovered stage-5 unique winning destination: master marker (90,59) → final viewport macro (86,57)
+- recovered final FIRE effect, $030D=$7B ending-overlay handoff and strict >000010 initial score qualification
+- recovered original congratulatory ending, five-character UP/DOWN/FIRE name entry, best-score update and title return
+- executable endgame state machine and UI; natural combat score production remains a separate projectile/enemy subsystem
 - executable vertical slice: flight → land → supply → disembark → walk → interior terminal → outdoors → craft → flight
-- complete recovered 480×480 world available to the renderer
+- complete corrected 480×480 world available to the renderer
 - streamed world window that follows the craft
 - original flight charset decoded from $4000
 - original multicolour world palette bands
@@ -63,6 +70,7 @@ Controls:
 - 0–9 in KARD authentication: enter the complete four-digit KARD number
 - A–Z at a regional password gate: enter the five-letter password; Backspace edits terminal input
 - Enter outside a terminal: show recovered KARD A/B and PASS status
+- Ending: Z/FIRE leaves the final transporter effect; UP/DOWN selects each of five name characters; Z/FIRE accepts after release
 - Space: landing gear
 - F7: shield UI state
 - Tab: switch between the two recovered velocity table sets
@@ -70,6 +78,6 @@ Controls:
 - F1: toggle diagnostic HUD
 - F2: toggle 3×3 landing-footprint overlay
 
-The deterministic reference layers live in `scripts/flight_model.gd`, `ground_model.gd`, `supply_model.gd`, `interior_model.gd`, `computer_model.gd`, and `encounter_model.gd`. Scientist/stun coverage lives in `tests/test_encounter_model.gd` and `test_scientist_loop.gd`; computer/economy coverage lives in `test_computer_model.gd` and `test_computer_integration.gd`; the complete gameplay-loop regression lives in `tests/test_vertical_slice.gd`.
+The deterministic reference layers live in `scripts/flight_model.gd`, `ground_model.gd`, `supply_model.gd`, `interior_model.gd`, `computer_model.gd`, `encounter_model.gd`, and `endgame_model.gd`. Endgame coverage lives in `tests/test_endgame_model.gd` and `test_endgame_integration.gd`; scientist/stun coverage lives in `test_encounter_model.gd` and `test_scientist_loop.gd`; computer/economy coverage lives in `test_computer_model.gd` and `test_computer_integration.gd`; the complete gameplay-loop regression lives in `tests/test_vertical_slice.gd`.
 
 Generated local world/graphics files are intentionally excluded from Git because they contain derived original game data. They are regenerated from the authorised local source media. Interior assets are rebuilt with `extract_interior_runtime.py` and `generate_interior_tile_atlases.py`; scientist/stun sprite assets are rebuilt with `generate_encounter_sprites.py`.

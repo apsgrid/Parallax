@@ -36,13 +36,13 @@ const findings = [
     next: ["Correlate classifier return classes with world locations and visible glyphs.", "Trace each class into collision masks and gameplay responses."]
   },
   {
-    id: "progression.endgame",
-    title: "Reconstruct progression-5 and the original endgame/ending condition",
-    family: "progression",
-    location: "$030E progression index; password success at $F202; progression-5 checks around $089C",
-    finding: "The five regional password gates are reconstructed and implemented: STACK, JEWEL, PARCH, SALON and GLOBE each advance $030E. The scientist-present $E9E5==6 return state is now identified and its $E760 outcome implemented. What happens after progression reaches 5, including the coordinate-gated logic around $089C and the player-facing ending, remains outside the completed computer milestone.",
-    sources: ["COMPUTER_STATE.md", "TRANSITION_STATE.md", "Godot/scripts/computer_model.gd", "Godot/tests/test_computer_integration.gd", "trace_computer_state.py", "trace_kard_state.py"],
-    next: ["Trace all reads of $030E when it equals 5, especially the $089C world-coordinate gate.", "Identify the final objective, success/ending transition and reset/credits consequences.", "Capture the original final-stage behavior in VICE if reproducible."]
+    id: "combat.score-production",
+    title: "Reconstruct natural flight projectile/enemy score production in the modern playable loop",
+    family: "flight-combat",
+    location: "$0226-$022D score state; projectile hit path $12F0/$147F; moving-object hit path $FC43-$FC4C",
+    finding: "The progression-5 transporter and ending are reconstructed and implemented, including the unique winning $77 destination, $030D=$7B overlay handoff, strict current-score > stored-best qualification, five-character name entry and title return. The original score digits and two score-award families are identified, but the modern visual laser/enemy layer does not yet reproduce the collision-confirmed award events. Points must not be invented simply for firing.",
+    sources: ["ENDGAME_STATE.md", "endgame_state_map.json", "Godot/scripts/endgame_model.gd", "Godot/tests/test_endgame_model.gd", "Godot/tests/test_endgame_integration.gd", "verify_endgame_state.py", "trace_score_awards.py", "trace_score_system.py"],
+    next: ["Trace the exact flight projectile collision response classes that call $147F and their score values.", "Reconstruct moving enemy/object types feeding $F828 and the 2*object_type award at $FC4C.", "Wire only verified hit awards into EndgameModel.add_score and capture original VICE score cases."]
   },
   {
     id: "ground.fine-scroll-collision",

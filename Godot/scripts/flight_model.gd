@@ -6,6 +6,7 @@ const SupplyModel = preload("res://scripts/supply_model.gd")
 const InteriorModel = preload("res://scripts/interior_model.gd")
 const ComputerModel = preload("res://scripts/computer_model.gd")
 const EncounterModel = preload("res://scripts/encounter_model.gd")
+const EndgameModel = preload("res://scripts/endgame_model.gd")
 
 const GROUND_PHASE_NONE := 0
 const GROUND_PHASE_SUPPLY := 1
@@ -68,6 +69,7 @@ var supply_model := SupplyModel.new()
 var interior_model := InteriorModel.new()
 var computer_model := ComputerModel.new()
 var encounter_model := EncounterModel.new()
+var endgame_model := EndgameModel.new()
 
 var _input_counters := [0, 0, 0, 0]
 
@@ -98,6 +100,7 @@ func reset() -> void:
     interior_model.reset()
     computer_model.reset_all()
     encounter_model.reset_all()
+    endgame_model.reset_game()
     _input_counters = [0, 0, 0, 0]
 
 
@@ -105,6 +108,10 @@ func configure_interior_runtime(data: Dictionary) -> void:
     interior_model.configure_runtime(data)
     computer_model.configure_runtime(data)
     encounter_model.configure_runtime(data)
+
+
+func configure_world_runtime(master_tiles: Array) -> void:
+    endgame_model.configure_master_map(master_tiles)
 
 
 func toggle_landing_gear() -> void:
@@ -121,7 +128,8 @@ func step(
     safe_cells: int,
     ground_blocked_bits: int = 0,
     ground_right_contact_code: int = -1,
-    fire_down: bool = false
+    fire_down: bool = false,
+    flight_special_code: int = -1
 ) -> Dictionary:
     var events := {
         "laser": false,
@@ -149,6 +157,10 @@ func step(
         "kard_offer_opened": false,
         "kard_offer_pending": false,
         "scientist_following": false,
+        "transported": false,
+        "transport_marker": Vector2i(-1, -1),
+        "transport_destination_macro": Vector2i(-1, -1),
+        "endgame_triggered": false,
     }
 
     # The flight dispatcher tests $F4 before running any flight update.
@@ -272,6 +284,18 @@ func step(
             events["exited_ground"] = true
         return events
 
+    if endgame_model.active():
+        return events
+
+    if flight_special_code == EndgameModel.TRANSPORT_TRIGGER_TILE and flight_height >= 0x14:
+        var transport_events := _activate_transporter()
+        if transport_events["transported"]:
+            events["transported"] = true
+            events["transport_marker"] = transport_events["marker"]
+            events["transport_destination_macro"] = transport_events["destination_macro"]
+            events["endgame_triggered"] = transport_events["final_gate"]
+            return events
+
     footprint_safe_cells = clampi(safe_cells, 0, 9)
     _process_direction_input(input_bits)
 
@@ -317,8 +341,60 @@ func step(
 
     world_x += vx_hi
     world_y += vy_hi
+    endgame_model.tick_playing_frame()
 
     return events
+
+
+func viewport_origin_tile() -> Vector2i:
+    return INITIAL_VIEW_ORIGIN_TILE + Vector2i(
+        floori(float(-world_x) / 8.0),
+        floori(float(-world_y) / 8.0)
+    )
+
+
+func viewport_macro() -> Vector2i:
+    var origin := viewport_origin_tile()
+    return Vector2i(
+        floori(float(origin.x) / 5.0),
+        floori(float(origin.y) / 5.0)
+    )
+
+
+func _activate_transporter() -> Dictionary:
+    var origin := viewport_origin_tile()
+    var current_macro := viewport_macro()
+    var transport: Dictionary = endgame_model.activate_transporter(
+        current_macro,
+        computer_model.progression_index
+    )
+    if not transport["transported"]:
+        return transport
+
+    var destination_macro: Vector2i = transport["destination_macro"]
+    var tile_remainder := Vector2i(posmod(origin.x, 5), posmod(origin.y, 5))
+    var destination_origin := destination_macro * 5 + tile_remainder
+    var tile_delta := destination_origin - origin
+
+    # Preserve sub-character fine scroll while applying the exact macro/tile
+    # displacement produced by the relocation and twenty Y-scroll frames.
+    world_x -= tile_delta.x * 8
+    world_y -= tile_delta.y * 8
+    vx_hi = 0
+    vy_hi = 0
+    return transport
+
+
+func endgame_active() -> bool:
+    return endgame_model.active()
+
+
+func step_endgame(input_bits: int, fire_down: bool) -> Dictionary:
+    return endgame_model.step_ending(input_bits, fire_down)
+
+
+func add_score(points: int) -> void:
+    endgame_model.add_score(points)
 
 
 func _enter_ground_mode() -> void:

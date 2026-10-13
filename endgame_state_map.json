@@ -1,0 +1,104 @@
+{
+  "image": {
+    "path": "Unpacked/playable_ram.bin",
+    "sha256": "232471c51e24254873f182b865378aca60a0b171490d75c66123e007e1cdb137"
+  },
+  "progression": {
+    "address": "0x030E",
+    "final_required_value": 5,
+    "fifth_password": "GLOBE",
+    "success_increment": "0xF20E",
+    "confidence": "verified"
+  },
+  "transporter_trigger": {
+    "expanded_tile_code": "0x70",
+    "flight_handler": "0x1714",
+    "minimum_height": "0x14",
+    "footprint": "cross_5_of_3x3",
+    "cooldown_address": "0x191D",
+    "cooldown_frames": 50,
+    "confidence": "verified"
+  },
+  "master_map_runtime": {
+    "runtime_base": "0x8000",
+    "dimensions": [96, 96],
+    "pre_swap_source": [
+      {"range": "0xD000-0xDFFF", "runtime_range": "0x8000-0x8FFF"},
+      {"range": "0x9000-0xA3FF", "runtime_range": "0x9000-0xA3FF"}
+    ],
+    "swap_routine": "0xCFA3",
+    "destination_metatile": "0x77",
+    "destination_count": 18,
+    "confidence": "verified"
+  },
+  "destination_selector": {
+    "scan_routine": "0x17FB",
+    "selector_routine": "0x17C9",
+    "selector_state": "0x17C8",
+    "selector_mask": "0x0F",
+    "band_starts": [0, 19, 38, 57, 76, 95],
+    "scan_rows": 20,
+    "candidate_order": "row_major",
+    "pre_scroll_transform": ["mx-4", "my+2"],
+    "final_transform": ["mx-4", "my-2"],
+    "cooldown_frames": 50,
+    "confidence": "verified"
+  },
+  "final_gate": {
+    "routine": "0x089C",
+    "conditions": {
+      "progression_equals": 5,
+      "macro_x_min": 80,
+      "macro_y_max_exclusive": 80
+    },
+    "unique_master_marker": [90, 59],
+    "unique_final_macro": [86, 57],
+    "confidence": "verified"
+  },
+  "overlay_handoff": {
+    "final_effect": "0x3F9C",
+    "fire_wait": "0x3FAF",
+    "marker_address": "0x030D",
+    "marker_value": "0x7B",
+    "overlay_trampoline": "0xCF46",
+    "overlay_branch": "0x80CB",
+    "ending_route": "0x816F",
+    "confidence": "verified"
+  },
+  "score_gate": {
+    "current_digits": "0x0226-0x022B",
+    "best_record": "0x835B",
+    "comparison": "strict_greater_than",
+    "initial_best_score": "000010",
+    "initial_best_name": "CHRIX",
+    "minimum_fresh_game_qualifying_score": 11,
+    "confidence": "verified"
+  },
+  "name_entry": {
+    "routine": "0x8EAE",
+    "length": 5,
+    "initial_screen_code": 1,
+    "screen_code_mask": "0x3F",
+    "up": "increment",
+    "down": "decrement",
+    "fire": "accept_after_release_arm",
+    "character_cadence_calls": 2,
+    "record_copy": "0x8F13",
+    "confidence": "verified"
+  },
+  "return_to_title": {
+    "teardown": "0x8F5B",
+    "post_save_jump": "0xBFFD",
+    "title_loop": "0x8014",
+    "confidence": "verified"
+  },
+  "score_sources_open_for_modern_integration": [
+    "Flight projectile/destructible hit path that writes score accumulator 0x0F",
+    "Moving enemy/object hit path that writes 2*object_type"
+  ],
+  "open": [
+    "Controlled VICE parity capture of complete final transporter/ending timing",
+    "Exact modern persistence equivalent of original best-score save path",
+    "Natural flight/enemy score production in the modern playable scene"
+  ]
+}

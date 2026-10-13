@@ -302,6 +302,6 @@ The **scientist stun / natural KARD acquisition / capture loop is reconstructed 
 Separate open work:
 
 - exact semantic identities and player effects of local entity types 1 and 3;
-- progression-5/endgame behavior after `GLOBE`;
+- natural flight projectile/enemy score production used by the recovered ending qualification;
 - controlled VICE parity capture of a full scientist stun/KARD/capture encounter;
 - any local entity damage/attack behavior belonging to types 1/3 rather than the scientist path.

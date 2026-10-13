@@ -10,6 +10,24 @@ The corrected fully expanded playable image reveals the original flight world as
 - Size: 9,216 bytes
 - Each byte selects one of 256 metatiles
 
+### Canonical snapshot layout / overlay swap
+
+The **runtime** map base is still `$8000`, but the corrected Stage-5 snapshot is captured before the title/flight overlay swap. In that image:
+
+- `$8000-$8FFF` contains title/ending overlay code;
+- the runtime map's first `$1000` bytes are parked under C64 I/O at `$D000-$DFFF`;
+- `$9000-$A3FF` already contains the remainder of the map.
+
+Routine `$CFA3` swaps `$8000-$8FFF` with RAM-under-I/O `$D000-$DFFF` when entering gameplay. Therefore an extractor working from `playable_ram.bin` must reconstruct the runtime map as:
+
+`RAM[$D000:$E000] + RAM[$9000:$A400]`
+
+The earlier extractor incorrectly read the pre-swap title overlay as the first 4096 map bytes. The corrected extractor now also emits the 96x96 `master_tiles` array and transporter destination metadata into the ignored local JSON.
+
+Corrected world statistics:
+- **204** distinct master metatile IDs;
+- **202** distinct expanded final tile codes.
+
 ## Metatile table
 
 - Base: `$269C`
