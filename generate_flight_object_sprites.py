@@ -8,10 +8,14 @@ out.mkdir(parents=True, exist_ok=True)
 # Recovered VIC-II sprite pointers used by the three-slot flight-object scheduler:
 # materialization $B1-$B4; state 1 $C9-$CC; state 2 $B9-$BC;
 # states 3/7 $4C-$4F; state 5 $48-$4B; state 6 $50-$54.
+# The two $FDF1/$FE80 hostile-projectile slots share active pointers $56-$59
+# and use $BE-$C7 for the recovered impact/explosion sequence.
 pointers = sorted(set(
     list(range(0x48, 0x55))
+    + list(range(0x56, 0x5A))
     + list(range(0xB1, 0xB5))
     + list(range(0xB9, 0xBD))
+    + list(range(0xBE, 0xC8))
     + list(range(0xC9, 0xCD))
 ))
 

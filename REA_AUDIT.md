@@ -30,8 +30,8 @@ Generated graph JSON remains local under `rea_audit/`.
 ## REA reconstruction obligation ledger
 
 Authenticated review Evidence was generated with REA's own `createEvidence()` and `createEvidenceBundle()` implementation.
-- ledger ID: `rol_edc8d0a0da48a7eb3f870f51a448b6159846b29e1e2caaa18fc4c3c0f70802ea`
-- closure digest: `e7445e97bdbccecf046ef477b8d360254a63dc664eee317792d4cb6b7bab8388`
+- ledger ID: `rol_c4ccee63f7bffe0b13d5b5ab64e0b8cf3ee6d84cfbf0ee367cedcaa8bd216986`
+- closure digest: `cdd65904506aaf9a27021af059433a8d129a330e9a61fbaab8bfba1e2d2cd48c`
 - status: `unknown` (intentionally conservative)
 - required obligations: 6
 - verified: 0
@@ -41,13 +41,13 @@ Tracked obligations:
 1. shield behavior beyond toggle/status presentation;
 2. remaining local entity types 1 and 3 and their player-facing effects;
 3. exact collision-tile taxonomy;
-4. controlled runtime parity for the implemented three-slot moving-flight-object scheduler plus exact destruction/auxiliary-fire/catastrophic-engine semantics;
+4. controlled runtime parity for the implemented moving-flight-object and `$FACC` hostile-fire schedulers plus exact destruction and ENGINE>=60 semantics;
 5. controlled runtime parity for reconstructed outdoor/interior/scientist/endgame timing;
 6. exact ship/shadow projection ownership.
 
 ## Funes validation
 
-Current project memory source validates as 37 turns / 171 chunks / 0 rejected / 0 duplicate IDs before indexing.
+Current project memory source validates as 37 turns / 177 chunks / 0 rejected / 0 duplicate IDs before indexing.
 Recall checks correctly retrieved:
 - corrected Stage-5 range, byte count and SHA-256;
 - post-startup viewport/player coordinates and landing-ready conditions;
@@ -75,7 +75,7 @@ Funes is a retrieval layer, not original-game authority.
 - no identified resident flight damage/collision consumer of `$CF26`;
 - the now-complete `$FFA3 -> $CF15 -> $2022` moving-object contact path selects only `$CF01 ENGINE` or `$CF02 LAZERS`, proving that `$CF26` does not reduce/cancel this collision damage.
 
-For moving-object contact this is now a verified negative, not merely an inference. A different unresolved auxiliary-fire/overlay path could still consult the flag indirectly. Original Rules mode starts SHIELDS OFF, preserves the toggle/status state, and does not invent protection for the verified contact path.
+For moving-object and `$FACC` hostile-fire contact this is now a verified negative, not merely an inference: both converge on `$FFA3 -> $CF15 -> $2022` without a `$CF26` read. An unrelated overlay or indirect path could only change this with new evidence. Original Rules mode starts SHIELDS OFF, preserves the toggle/status state, and does not invent protection for either verified contact path.
 
 ## Second-pass finding: flight ↔ ground transition
 
@@ -241,4 +241,4 @@ Static and model evidence now resolves the resident score-producing laser paths:
 
 Godot now uses the verified single-projectile model, applies +15 only on recovered destructible terrain collisions, and runs the authentic three-slot moving-object scheduler with natural `2*object_state` awards. One destructible hit alone raises score from 000000 to 000015, naturally exceeding the recovered initial best score 000010.
 
-The subsequent craft-impact trace resolves `$CF15`: event 2 damages `$CF01 ENGINE`, event 3 damages `$CF02 LAZERS`, each by 2–9 from the `$C000,Y` stream. `$2058` recovers `$CF00-$CF02` once every 90 status ticks; ENGINE>=40 suppresses velocity/landing and LAZERS>=7 blocks fire. `$CF26` shields are absent from this path. Remaining combat obligations are runtime parity, exact object-destruction presentation, `$FACC` auxiliary fire, and the indirect ENGINE>=60 failure branch.
+The subsequent craft-impact trace resolves `$CF15`: event 2 damages `$CF01 ENGINE`, event 3 damages `$CF02 LAZERS`, each by 2–9 from the `$C000,Y` stream. `$2058` recovers `$CF00-$CF02` once every 90 status ticks; ENGINE>=40 suppresses velocity/landing and LAZERS>=7 blocks fire. `$FACC -> $FF58 -> $FDF6` is now also resolved: two persistent hostile-fire records use independent fire RNG, eight-way motion, the `$56-$59` active sprite cycle, `$BE-$C7` impacts, and the same `$FFA3` damage queue. `$CF26` shields are absent from both recovered flight-contact paths. Remaining combat obligations are runtime parity, exact object-destruction presentation, and the indirect ENGINE>=60 branch.

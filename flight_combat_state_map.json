@@ -88,6 +88,23 @@
     "deterministic_test": "Godot/tests/test_flight_object_scheduler.gd",
     "confidence": "verified_endpoint"
   },
+  "hostile_fire": {
+    "trigger": "0xFACC: independent 0xFBC4 RNG low three bits == 4",
+    "spawner": "0xFF58",
+    "slot_count": 2,
+    "slot_records": ["0xFDF1-0xFDF5", "0xFE80-0xFE84"],
+    "updater": "0xFDF6",
+    "direction_vectors": ["0xFB3F", "0xFB47"],
+    "craft_x_compensation": "0xFA86",
+    "active_sprite_cycle": [86,87,88,89,88,87],
+    "active_sprite_hold_ticks": 4,
+    "explosion_sprite_range": [190,199],
+    "craft_collision": "0xF62A -> 0xF773 -> 0xFFA3 -> 0xCF15",
+    "modern_implementation": true,
+    "static_verifier": "verify_flight_aux_projectiles.py",
+    "deterministic_test": "Godot/tests/test_flight_aux_projectiles.gd",
+    "confidence": "verified"
+  },
   "craft_impact_damage": {
     "queue": "0xFFA3 -> 0xCF15",
     "consumer": "0x2022",
@@ -109,7 +126,6 @@
   "open": [
     "Controlled VICE parity for laser/destructible/object spawn-movement-hit/damage timing",
     "Exact original moving-object destruction presentation",
-    "Exact behavior of the $FACC auxiliary object-fire request",
     "Indirect catastrophic ENGINE-failure path when $CF01 >= 0x3C",
     "Exact activation cadence for the dynamic $93/$94 collision-band animation"
   ]

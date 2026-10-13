@@ -244,7 +244,10 @@ Because the full byte is doubled rather than only the low category bits, states 
 - recovered materialization and state animation sprite-pointer tables;
 - recovered five-region object-colour table;
 - craft/object and same-category object/object overlap destruction paths;
-- 20-frame object explosion lifetime and natural moving-object score production.
+- 20-frame object explosion lifetime and natural moving-object score production;
+- exact `$FACC` hostile-fire trigger with independent attack RNG;
+- exact two-slot `$FDF1/$FE80` hostile-projectile lifecycle, movement, sprite animation and `$BE-$C7` impact sequence;
+- hostile-projectile contact routed through the recovered ENGINE/LAZERS damage consumer.
 
 `FlightModel` owns the combat model and feeds verified score awards into the same `EndgameModel` used by the recovered final score gate.
 
@@ -254,18 +257,20 @@ Because the full byte is doubled rather than only the low category bits, states 
 - samples real world terrain;
 - applies the verified blast pattern;
 - updates the runtime expanded world and master map when direct writeback is verified;
-- renders the recovered projectile/impact state in the modern 3D presentation.
+- renders the recovered player shot/impact state and both recovered hostile-fire slots in the modern 3D presentation.
 
 ## Verification
 
 Static authority:
 
 - `verify_flight_combat.py`
+- `verify_flight_aux_projectiles.py`
 
 Deterministic coverage:
 
 - `Godot/tests/test_flight_combat_model.gd`
 - `Godot/tests/test_flight_combat_integration.gd`
+- `Godot/tests/test_flight_aux_projectiles.gd`
 
 The integration regression proves:
 
@@ -279,7 +284,7 @@ Recovered per-object order at $F8CA:
 
 1. spawn/materialization ($F8EA);
 2. movement ($F9D0);
-3. auxiliary-fire request ($FACC);
+3. hostile-projectile spawn attempt ($FACC);
 4. animation/presentation updates ($FB8A/$FB4F);
 5. player-laser collision ($FBFF);
 6. craft/object and object/object collision handling ($F76D).
@@ -290,6 +295,27 @@ Godot now executes this scheduler before advancing the player projectile, create
 
 Static verification: `verify_flight_objects.py`.
 Deterministic regression: `Godot/tests/test_flight_object_scheduler.gd`.
+
+## Hostile object fire — $FACC -> $FF58 -> $FDF6 (VERIFIED, IMPLEMENTED)
+
+The formerly open `$FACC` branch is now resolved end-to-end. Every active moving object consumes the independent `$FBC4` cursor over the shared `$0900` byte stream; a low-three-bit result of 4 attempts to fire.
+
+`$FF58` owns exactly two persistent hostile-projectile records at `$FDF1-$FDF5` and `$FE80-$FE84`. A successful allocation copies the firing object's X/Y and full state, then consumes the primary `$FBB9` RNG cursor for one of eight directions. If both projectile records are occupied the shot is dropped without consuming that direction RNG.
+
+After all three moving-object records have run, `$F8C6` tail-calls `$FDF6`. Both hostile shots then:
+
+- apply the same 17-entry craft-X compensation table at `$FA86` used by object motion;
+- add craft Y velocity `$070B`;
+- add the recovered eight-direction vectors at `$FB3F/$FB47`;
+- clear when X leaves `1..199` or Y leaves `5..249`;
+- share the active VIC-II sprite-pointer cycle `$56,$57,$58,$59,$58,$57`, advancing every four scheduler ticks.
+
+Craft contact reuses `$F773` and therefore the same object-category height bands and signed `-11..+9` X/Y contact rectangle. A hit reaches `$FFA3`, queues `[2,2,3,2]` through `$CF15`, and consequently damages ENGINE or LAZERS through the already verified `$2022` consumer. The hostile shot then enters the original `$BE-$C7` impact sprite sequence; the explosion pointer advances every second tick according to the preserved direction-counter parity and the slot clears at `$C7`.
+
+The `$FFB9` alternate anchor check is gated by `$F4 != 0`. Normal flight runs with `$F4 == 0`, while the modern scheduler is already suspended once the flight-to-ground transition is active, so no ship/shadow ownership is invented for `$074A/$074B`.
+
+Static verification: `verify_flight_aux_projectiles.py`.
+Deterministic regression: `Godot/tests/test_flight_aux_projectiles.gd`.
 
 ## Craft-impact damage — $FFA3 -> $CF15 -> $2022 (VERIFIED, IMPLEMENTED)
 
@@ -316,16 +342,15 @@ Deterministic regression: `Godot/tests/test_flight_damage.gd`.
 
 `$CF26` remains the F7 SHIELDS OFF/ON toggle. Full direct-reference analysis finds only the status display read and the `$2014-$2019` toggle itself. Crucially, neither `$FFA3` nor the now-complete `$2022` impact consumer reads `$CF26`, and the indexed damage target is selected only from `$CF00-$CF02`.
 
-Therefore **the recovered moving-object impact path is not shield-reduced**. Original Rules mode preserves the shield toggle/status state but deliberately does not invent protection for these collisions. This does not claim that no unrelated overlay or still-unresolved auxiliary-fire path could ever consult shields indirectly.
+Therefore **both recovered moving-object contact and hostile-projectile contact are not shield-reduced**. Hostile shots converge on the same `$FFA3 -> $CF15 -> $2022` consumer, so resolving `$FACC` adds no hidden `$CF26` read. Original Rules mode preserves the shield toggle/status state but deliberately does not invent protection for these verified collisions. An unrelated overlay or still-unresolved indirect path could only change this conclusion with new evidence.
 
 ## Current boundary
 
-The **flight laser, terrain collision, authentic destructible-score path, three-slot moving-object scheduler, and moving-object ENGINE/LAZERS impact damage are reconstructed and implemented**.
+The **flight laser, terrain collision, authentic destructible-score path, three-slot moving-object scheduler, two-slot hostile-projectile subsystem, and ENGINE/LAZERS impact damage are reconstructed and implemented**.
 
 Remaining flight-combat evidence work is now narrower:
 
 - capture controlled VICE parity for projectile timing, destructible writeback, one spawn/movement sequence, one moving-object hit, and one craft-impact damage event;
 - verify exact original object-destruction presentation rather than treating the modern fade/scale as original behavior;
-- resolve the `$FACC` auxiliary object-fire request into its exact projectile/effect behavior;
 - resolve the indirect `$CF01 >= $3C` catastrophic ENGINE-failure branch before implementing it;
 - resolve the exact activation cadence for the dynamic $93/$94 collision-band animation.

@@ -327,7 +327,7 @@ Mode 1:
 
 These values are now used directly by the Godot reference controller rather than approximated with trigonometry.
 
-### `$CF26` shield flag — VERIFIED toggle/status; VERIFIED absent from moving-object impact damage
+### `$CF26` shield flag — VERIFIED toggle/status; VERIFIED absent from recovered flight-contact damage
 
 Direct accesses to `$CF26` remain limited to:
 - `$2014-$2019`: F7 handler reads `$CF26`, XORs with 1, and writes it back.
@@ -335,15 +335,15 @@ Direct accesses to `$CF26` remain limited to:
 - After the F7 toggle, `$201C-$201F` adds 6 to the new state and jumps to `$1FA8`.
 - `$1FA8` is an event/status queue writer: it appends the event ID to `$CF17+Y` and increments `$CF25`. This is presentation/update signalling, not shield physics.
 
-The moving-object damage path is now complete enough to make a stronger statement. `$FFA3` queues event 2 or 3 in `$CF15`; `$2022` consumes it and indexes `$CF01 ENGINE` or `$CF02 LAZERS`. Neither routine reads `$CF26`, and the indexed target cannot reach the shield byte.
+The moving-object and `$FACC` hostile-fire damage paths are now both complete enough to make a stronger statement. Hostile fire converges on the same `$F773 -> $FFA3` contact path. `$FFA3` queues event 2 or 3 in `$CF15`; `$2022` consumes it and indexes `$CF01 ENGINE` or `$CF02 LAZERS`. None of those routines reads `$CF26`, and the indexed target cannot reach the shield byte.
 
 Interpretation:
 - **VERIFIED:** F7 toggles persistent SHIELDS OFF/ON status.
-- **VERIFIED for moving-object contact:** `$CF26` does not reduce or cancel the recovered ENGINE/LAZERS collision damage.
+- **VERIFIED for moving-object and hostile-fire contact:** `$CF26` does not reduce or cancel the recovered ENGINE/LAZERS damage.
 - **STRONG NEGATIVE EVIDENCE globally:** no other resident flight damage/collision consumer of `$CF26` has been identified.
-- **OPEN only beyond that path:** a still-unresolved auxiliary-fire/overlay or indirect self-modifying path could theoretically consult the flag.
+- **OPEN only outside these recovered paths:** an unrelated overlay or indirect self-modifying path could theoretically consult the flag if future evidence establishes one.
 
-The Godot Original Rules model now starts SHIELDS OFF, toggles the recovered status state with F7, and deliberately applies no shield reduction to moving-object contact damage.
+The Godot Original Rules model now starts SHIELDS OFF, toggles the recovered status state with F7, and deliberately applies no shield reduction to either verified flight-contact damage path.
 
 ## Verified flight ↔ ground round trip
 

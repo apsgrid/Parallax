@@ -48,6 +48,7 @@ var flight_object_textures := {}
 var encounter_entity: Sprite3D
 var stun_projectile: Sprite3D
 var flight_objects: Array[Sprite3D] = []
+var flight_aux_projectiles: Array[Sprite3D] = []
 var flight_projectile: MeshInstance3D
 var camera: Camera3D
 var hud: Label
@@ -298,6 +299,8 @@ func _physics_process(_delta: float) -> void:
         status_message = "FLIGHT OBJECT — recovered three-slot scheduler spawned %d" % int(flight_object_events["spawned"][0])
     if not flight_object_events["laser_hits"].is_empty():
         status_message = "LAZER HIT — moving object +%d" % int(flight_object_events["score_award"])
+    if not flight_object_events["aux_fire_requests"].is_empty():
+        status_message = "HOSTILE FIRE — recovered two-slot projectile launched"
     if not flight_object_events["damage_events"].is_empty():
         var damage_event: Dictionary = flight_object_events["damage_events"][0]
         status_message = "%s DAMAGED +%d — recovered flight damage state %d" % [
@@ -734,9 +737,13 @@ func _load_flight_object_sprites() -> void:
     var pointers := []
     for ptr in range(0x48, 0x55):
         pointers.append(ptr)
+    for ptr in range(0x56, 0x5A):
+        pointers.append(ptr)
     for ptr in range(0xB1, 0xB5):
         pointers.append(ptr)
     for ptr in range(0xB9, 0xBD):
+        pointers.append(ptr)
+    for ptr in range(0xBE, 0xC8):
         pointers.append(ptr)
     for ptr in range(0xC9, 0xCD):
         pointers.append(ptr)
@@ -908,6 +915,18 @@ func _build_flight_objects() -> void:
         object_sprite.visible = false
         add_child(object_sprite)
         flight_objects.append(object_sprite)
+
+    flight_aux_projectiles.clear()
+    for slot_index in range(2):
+        var projectile_sprite := Sprite3D.new()
+        projectile_sprite.name = "FlightAuxProjectile%d" % slot_index
+        projectile_sprite.pixel_size = WORLD_SCALE
+        projectile_sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+        projectile_sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+        projectile_sprite.shaded = false
+        projectile_sprite.visible = false
+        add_child(projectile_sprite)
+        flight_aux_projectiles.append(projectile_sprite)
 
 
 func _build_camera() -> void:
@@ -1653,6 +1672,21 @@ func _update_visuals() -> void:
         else:
             object_sprite.modulate = _c64_color(colour_index)
             object_sprite.scale = Vector3.ONE
+
+    for slot_index in range(flight_aux_projectiles.size()):
+        var aux_sprite: Sprite3D = flight_aux_projectiles[slot_index]
+        var aux_render: Dictionary = model.flight_combat_model.aux_projectile_render_state(slot_index)
+        var aux_visible := not model.ground_transition_flag and not in_interior and not in_endgame and bool(aux_render.get("visible", false))
+        aux_sprite.visible = aux_visible
+        if not aux_visible:
+            continue
+        var aux_pointer := int(aux_render.get("sprite_pointer", -1))
+        if aux_pointer >= 0 and flight_object_textures.has(aux_pointer):
+            aux_sprite.texture = flight_object_textures[aux_pointer]
+        var aux_category := int(aux_render.get("category", 0))
+        aux_sprite.position = _flight_screen_to_world(int(aux_render.get("x", 0)), int(aux_render.get("y", 0)), 0.96 + float(aux_category) * 0.04)
+        aux_sprite.modulate = Color.WHITE
+        aux_sprite.scale = Vector3.ONE
 
     if flight_projectile != null:
         var flight_shot_visible := (

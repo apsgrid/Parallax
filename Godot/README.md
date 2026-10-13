@@ -45,6 +45,7 @@ Current prototype:
 - recovered persistent low-nibble transporter selector and exact 50-frame cooldown
 - recovered stage-5 unique winning destination: master marker (90,59) → final viewport macro (86,57)
 - recovered final FIRE effect, $030D=$7B ending-overlay handoff and strict >000010 initial score qualification
+- recovered `$FACC` hostile fire with two persistent slots, exact movement/RNG cadence, `$56-$59` active animation and `$BE-$C7` impact sequence
 - recovered original congratulatory ending, five-character UP/DOWN/FIRE name entry, best-score update and title return
 - executable endgame state machine and UI; verified destructible-terrain +15 score production and authentic three-slot moving-object score awards now feed the ending naturally
 - executable vertical slice: flight → land → supply → disembark → walk → interior terminal → outdoors → craft → flight
@@ -72,13 +73,13 @@ Controls:
 - Enter outside a terminal: show recovered KARD A/B and PASS status
 - Ending: Z/FIRE leaves the final transporter effect; UP/DOWN selects each of five name characters; Z/FIRE accepts after release
 - Space: landing gear
-- F7: recovered SHIELDS OFF/ON status toggle (starts OFF; no reduction in the verified moving-object contact-damage path)
+- F7: recovered SHIELDS OFF/ON status toggle (starts OFF; no reduction in the verified moving-object or hostile-fire contact paths)
 - Tab: switch between the two recovered velocity table sets
 - R: reset to the recovered C64 start state
 - F1: toggle diagnostic HUD
 - F2: toggle 3×3 landing-footprint overlay
 
-The deterministic reference layers live in `scripts/flight_model.gd`, `flight_combat_model.gd`, `ground_model.gd`, `supply_model.gd`, `interior_model.gd`, `computer_model.gd`, `encounter_model.gd`, and `endgame_model.gd`. Flight-object coverage lives in `tests/test_flight_object_scheduler.gd`; craft-impact ENGINE/LAZERS damage, recovery, thresholds and shield non-effect coverage lives in `tests/test_flight_damage.gd`; endgame coverage lives in `tests/test_endgame_model.gd` and `test_endgame_integration.gd`; scientist/stun coverage lives in `test_encounter_model.gd` and `test_scientist_loop.gd`; computer/economy coverage lives in `test_computer_model.gd` and `test_computer_integration.gd`; the complete gameplay-loop regression lives in `tests/test_vertical_slice.gd`.
+The deterministic reference layers live in `scripts/flight_model.gd`, `flight_combat_model.gd`, `ground_model.gd`, `supply_model.gd`, `interior_model.gd`, `computer_model.gd`, `encounter_model.gd`, and `endgame_model.gd`. Flight-object coverage lives in `tests/test_flight_object_scheduler.gd`; hostile-fire coverage lives in `tests/test_flight_aux_projectiles.gd`; craft-impact ENGINE/LAZERS damage, recovery, thresholds and shield non-effect coverage lives in `tests/test_flight_damage.gd`; endgame coverage lives in `tests/test_endgame_model.gd` and `test_endgame_integration.gd`; scientist/stun coverage lives in `test_encounter_model.gd` and `test_scientist_loop.gd`; computer/economy coverage lives in `test_computer_model.gd` and `test_computer_integration.gd`; the complete gameplay-loop regression lives in `tests/test_vertical_slice.gd`.
 
 Generated local world/graphics files are intentionally excluded from Git because they contain derived original game data. They are regenerated from the authorised local source media. Interior assets are rebuilt with `extract_interior_runtime.py` and `generate_interior_tile_atlases.py`; scientist/stun sprite assets are rebuilt with `generate_encounter_sprites.py`; flight-object sprite masks are rebuilt with `generate_flight_object_sprites.py`.
 
@@ -100,6 +101,7 @@ Flight combat update:
 - direct persistent laser writeback is `$F7 -> $00`;
 - moving-object hit geometry/height bands/`2*object_state` scoring are implemented as verified primitives;
 - the authentic three-slot $F874 scheduler is implemented: original spawn categories, movement tables, materialization/animation sprite pointers, region colour lookup, overlap/craft collision handling and natural laser-hit scoring now run in ordinary play;
-- generated sprites are decoded from the recovered VIC-II pointers and presented by three runtime `Sprite3D` slots;
-- $CF15 craft impacts now apply the recovered ENGINE/LAZERS 2–9 damage, 90-tick recovery, ENGINE>=40 movement/landing suppression and LAZERS>=7 fire lockout; $CF26 shields are status-only for this verified collision path;
-- remaining object work is controlled VICE parity, exact destruction visuals, $FACC auxiliary-fire behavior and the indirect ENGINE>=60 failure path.
+- generated sprites are decoded from the recovered VIC-II pointers and presented by three moving-object plus two hostile-fire runtime `Sprite3D` slots;
+- $CF15 impacts now apply the recovered ENGINE/LAZERS 2–9 damage, 90-tick recovery, ENGINE>=40 movement/landing suppression and LAZERS>=7 fire lockout; $CF26 shields are status-only for both verified flight-contact paths;
+- `$FACC` hostile fire is implemented as the recovered two-slot subsystem and shares the verified ENGINE/LAZERS impact path;
+- remaining object work is controlled VICE parity, exact destruction visuals and the indirect ENGINE>=60 branch.

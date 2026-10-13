@@ -432,6 +432,8 @@ func advance_flight_objects(terrain_sampler: Callable, suppress_craft_collision:
             "craft_collisions": [],
             "object_overlap_destroys": [],
             "aux_fire_requests": [],
+            "aux_craft_collisions": [],
+            "aux_despawned": [],
             "damage_events": [],
             "score_award": 0,
         }
@@ -449,7 +451,10 @@ func advance_flight_objects(terrain_sampler: Callable, suppress_craft_collision:
         endgame_model.add_score(score_award)
 
     events["damage_events"] = []
-    for collision in events.get("craft_collisions", []):
+    var impact_events: Array = []
+    impact_events.append_array(events.get("craft_collisions", []))
+    impact_events.append_array(events.get("aux_craft_collisions", []))
+    for collision in impact_events:
         var damage_event: Dictionary = flight_combat_model.apply_craft_impact(int(collision.get("event_code", 0)))
         if bool(damage_event["applied"]):
             events["damage_events"].append(damage_event)

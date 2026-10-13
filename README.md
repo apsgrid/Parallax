@@ -61,11 +61,11 @@ The first complete gameplay vertical slice is now executable and regression-test
 
 Current targets beyond the completed endgame milestone:
 
-1. Validate the now-implemented authentic three-slot moving-flight-object scheduler against controlled VICE captures and resolve the exact object-destruction presentation. Spawn/type selection, three-slot records, movement, materialization/animation, region colours, rendering, natural `2*object_state` scoring, and the recovered ENGINE/LAZERS craft-impact damage path are implemented.
+1. Validate the now-implemented authentic moving-flight-object combat loop against controlled VICE captures and resolve the exact object-destruction presentation. Spawn/type selection, three-slot records, movement, materialization/animation, region colours, rendering, natural `2*object_state` scoring, the two-slot `$FACC` hostile-fire subsystem, and the recovered ENGINE/LAZERS impact path are implemented.
 2. Resolve the exact identities, behavior and player effects of the remaining local entity types 1 and 3.
 3. Assign exact semantics to the remaining flight collision tile classes.
 4. Identify sprite ownership for ship, shadow, projectiles and landing gear.
-5. Resolve the remaining auxiliary object-fire behavior and the indirect catastrophic ENGINE-failure path. The recovered moving-object impact path now damages ENGINE/LAZERS exactly; $CF26 shields are status-only for that path and do not reduce the damage.
+5. Resolve the remaining indirect ENGINE >= 60 branch. The recovered moving-object and `$FACC` hostile-fire impact paths now damage ENGINE/LAZERS exactly; `$CF26` shields are status-only for both verified paths and do not reduce the damage.
 6. Verify interior and ending raster/palette timing against the original.
 7. Capture controlled original VICE parity cases for outdoor collision, scientist stun/KARD capture, terminal transactions and the final transporter/ending sequence.
 
