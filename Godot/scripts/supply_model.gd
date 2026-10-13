@@ -250,6 +250,24 @@ func _apply_standard_kit() -> void:
     ship_ammunition = 0
 
 
+func return_from_ground(scientist_present: bool, password_solved: bool) -> void:
+    # $E760 consolidates carried equipment back into ship stores.
+    ship_oxygen = (ship_oxygen + carried_oxygen) & 0xFF
+    carried_oxygen = 0
+    ship_stun_guns = (ship_stun_guns + carried_stun_guns) & 0xFF
+    carried_stun_guns = 0
+    ship_ammunition = (ship_ammunition + carried_ammunition) & 0xFF
+    carried_ammunition = 0
+
+    # $CF33 is explicitly cleared before the ordinary scientist slot is
+    # consolidated. A local type-6 scientist returns only if the password
+    # gate was not solved on this outing.
+    carried_scientists = 0
+    if scientist_present and not password_solved:
+        ship_scientists = 1
+        scientist_drugged = false
+
+
 func _message(events: Dictionary, code: int) -> Dictionary:
     last_message_code = code
     events["message_code"] = code

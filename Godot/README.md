@@ -27,6 +27,12 @@ Current prototype:
 - recovered 40×20 interior room generation with deterministic COMPUTABANK/COMPUTASHOP/KARD terminal placement
 - recovered interior entry coordinates, local movement/collision, terminal dispatch and left-space exit
 - recovered interior $80-$BF character swap rendered from $5A30-$5C2F
+- authentic startup computer state: 20 credits, one KARD `0-285`, PASS `-----`
+- recovered two-slot KARD generation/replacement and four-digit authentication
+- recovered COMPUTABANK balance/credit-award paths and class-dependent KARD loss rules
+- recovered 20-credit COMPUTASHOP BONANZA PACK with exact inventory effects/caps
+- recovered KARD password-letter discovery and all five scientist-gated regional passwords
+- recovered RETURN KARD/PASS status display
 - executable vertical slice: flight → land → supply → disembark → walk → interior terminal → outdoors → craft → flight
 - complete recovered 480×480 world available to the renderer
 - streamed world window that follows the craft
@@ -44,8 +50,11 @@ Verified initial geometry:
 Controls:
 - In flight: Left/Right or A/D turn; Down/S climbs; Up/W dives
 - On foot/interior: Arrows/WASD use the recovered RIGHT → LEFT → DOWN → UP priority and one-pixel movement
-- Z: fire; when landing-ready and stopped, commit landing; in SHIP SUPPLY, select on release; on foot at the craft, return to flight
-- Enter: close an active recovered interior terminal interaction
+- Z: fire; when landing-ready and stopped, commit landing; in SHIP SUPPLY, select on release; on foot at the craft, return to flight; in terminals, insert/continue
+- A/B in terminal selection: choose KARD A or B; B also buys the offered BONANZA PACK
+- 0–9 in KARD authentication: enter the complete four-digit KARD number
+- A–Z at a regional password gate: enter the five-letter password; Backspace edits terminal input
+- Enter outside a terminal: show recovered KARD A/B and PASS status
 - Space: landing gear
 - F7: shield UI state
 - Tab: switch between the two recovered velocity table sets
@@ -53,6 +62,6 @@ Controls:
 - F1: toggle diagnostic HUD
 - F2: toggle 3×3 landing-footprint overlay
 
-The deterministic reference layers live in `scripts/flight_model.gd`, `ground_model.gd`, `supply_model.gd`, and `interior_model.gd`. The complete gameplay-loop regression lives in `tests/test_vertical_slice.gd`.
+The deterministic reference layers live in `scripts/flight_model.gd`, `ground_model.gd`, `supply_model.gd`, `interior_model.gd`, and `computer_model.gd`. Computer/economy coverage lives in `tests/test_computer_model.gd` and `test_computer_integration.gd`; the complete gameplay-loop regression lives in `tests/test_vertical_slice.gd`.
 
 Generated local world/graphics files are intentionally excluded from Git because they contain derived original game data. They are regenerated from the authorised local source media. Interior assets are rebuilt with `extract_interior_runtime.py` and `generate_interior_tile_atlases.py`.

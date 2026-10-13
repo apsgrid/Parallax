@@ -179,3 +179,21 @@ Outdoor `GroundModel` movement is not enabled until EXIT SHIP succeeds.
 - STAY ABOARD = `$E720`: **VERIFIED**
 - EXIT SHIP oxygen requirement: **VERIFIED**
 - exact C64 visual layout in modern UI: intentionally not treated as gameplay authority
+
+## Return-to-ship reconciliation — $E760
+
+The later computer/progression reconstruction resolves the scientist branch in the return reconciler.
+
+Before flight resumes, $E760 consolidates ordinary TAKE AWAY stores back into the ship:
+
+- carried oxygen $CF30 -> ship oxygen $CF04;
+- carried stun-guns $CF31 -> ship stun-guns $CF07;
+- carried ammunition $CF32 -> ship ammunition $CF08;
+- the carried stores are cleared.
+
+The scientist is special. Carried scientist $CF33 creates local entity type 6 at $E01F after EXIT SHIP. On return:
+
+- if local scientist type 6 is present and the outing password-success flag $F229 is clear, ship scientist $CF06 is restored to 1 and $CF34 is cleared;
+- if $F229 is set by a successful regional password, that scientist is not restored aboard.
+
+This behavior is implemented by `SupplyModel.return_from_ground()`. See `COMPUTER_STATE.md` for the KARD/password progression that controls $F229.

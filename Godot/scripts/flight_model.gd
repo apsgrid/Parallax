@@ -4,6 +4,7 @@ extends RefCounted
 const GroundModel = preload("res://scripts/ground_model.gd")
 const SupplyModel = preload("res://scripts/supply_model.gd")
 const InteriorModel = preload("res://scripts/interior_model.gd")
+const ComputerModel = preload("res://scripts/computer_model.gd")
 
 const GROUND_PHASE_NONE := 0
 const GROUND_PHASE_SUPPLY := 1
@@ -64,7 +65,7 @@ var ground_phase := GROUND_PHASE_NONE
 var ground_model := GroundModel.new()
 var supply_model := SupplyModel.new()
 var interior_model := InteriorModel.new()
-var region_index := 0
+var computer_model := ComputerModel.new()
 
 var _input_counters := [0, 0, 0, 0]
 
@@ -93,12 +94,13 @@ func reset() -> void:
     ground_model.reset()
     supply_model.reset_all()
     interior_model.reset()
-    region_index = 0
+    computer_model.reset_all()
     _input_counters = [0, 0, 0, 0]
 
 
 func configure_interior_runtime(data: Dictionary) -> void:
     interior_model.configure_runtime(data)
+    computer_model.configure_runtime(data)
 
 
 func toggle_landing_gear() -> void:
@@ -176,6 +178,16 @@ func step(
             events["interior_terminal_opened"] = interior_events["terminal_opened"]
             events["interior_terminal_kind"] = interior_events["terminal_kind"]
 
+            if interior_events["terminal_opened"]:
+                computer_model.open_terminal(
+                    int(interior_events["terminal_kind"]),
+                    interior_model.zone_index,
+                    interior_model.password_gate_active,
+                    supply_model.carried_scientists > 0
+                )
+            if interior_events["terminal_closed"]:
+                computer_model.close_terminal()
+
             if interior_events["exited"]:
                 ground_phase = GROUND_PHASE_OUTSIDE
                 events["exited_interior"] = true
@@ -200,7 +212,7 @@ func step(
             )
             var macro_x := floori(float(screen_origin.x) / 5.0)
             var macro_y := floori(float(screen_origin.y) / 5.0)
-            interior_model.enter(entry_code, macro_x, macro_y, region_index)
+            interior_model.enter(entry_code, macro_x, macro_y, computer_model.progression_index)
             ground_phase = GROUND_PHASE_INTERIOR
             events["entered_interior"] = true
             events["interior_entry_code"] = entry_code
@@ -269,6 +281,7 @@ func _enter_ground_mode() -> void:
     ground_entry_world = Vector2i(world_x, world_y)
     ground_phase = GROUND_PHASE_SUPPLY
     supply_model.begin_menu()
+    computer_model.begin_ground_session()
     ground_model.reset()
     ground_player_offset = Vector2i.ZERO
     vx_hi = 0
@@ -289,6 +302,7 @@ func in_interior() -> bool:
 
 func close_interior_terminal() -> void:
     interior_model.close_terminal()
+    computer_model.close_terminal()
 
 
 func _can_return_to_ship() -> bool:
@@ -301,6 +315,16 @@ func _can_return_to_ship() -> bool:
 
 
 func _exit_ground_mode() -> void:
+    # $E760 consolidates TAKE AWAY equipment before flight resumes.
+    # The local type-6 scientist only exists after EXIT SHIP; a successful
+    # password gate consumes that scientist instead of returning it aboard.
+    var scientist_present := ground_phase != GROUND_PHASE_SUPPLY and supply_model.carried_scientists > 0
+    supply_model.return_from_ground(
+        scientist_present,
+        computer_model.password_solved_this_trip
+    )
+    computer_model.close_terminal()
+
     # $EB92-$EBD0 feeds the remaining player-to-craft delta through the
     # same scroll updater used during walking. The deltas cancel and flight
     # resumes at the original landing world position.

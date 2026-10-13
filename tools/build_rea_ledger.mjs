@@ -18,13 +18,13 @@ const findings = [
     next: ["Test for indirect/self-modifying or overlay-specific reads of the shield state.", "Capture a reproducible original damage scenario with shields OFF and ON before implementing any protection effect."]
   },
   {
-    id: "computer.datacard.return",
-    title: "Complete KARD/account/password computer behavior beyond the recovered cardless terminal slice",
-    family: "computer-ui",
-    location: "$EBEB terminal dispatch -> $ED2C COMPUTABANK / $EF3C COMPUTASHOP / $F12B KARD-password terminal",
-    finding: "The interior terminal layer is reconstructed and implemented: direction-specific terminal contact codes, COMPUTABANK/COMPUTASHOP/KARD dispatch, the five progression passwords, and the initial cardless interaction/return path are verified. Full KARD ownership, account transactions, purchase state, and modern password-entry progression remain incomplete.",
-    sources: ["INTERIOR_STATE.md", "Godot/scripts/interior_model.gd", "Godot/tests/test_interior_model.gd", "Godot/tests/test_vertical_slice.gd", "verify_interior_mode.py", "trace_interior_interactions.py"],
-    next: ["Reconstruct complete KARD ownership/account state and bank transaction semantics.", "Implement COMPUTASHOP purchase state and all five password-entry progression outcomes.", "Capture a controlled original terminal transaction in VICE."]
+    id: "entity.kard-acquisition",
+    title: "Reconstruct the scientist/NPC stun-combat path that naturally offers generated KARDs",
+    family: "entity-combat",
+    location: "$E9E5 entity types 4/5/6 -> $EECD stun transition -> $F026/$F061 KARD offer",
+    finding: "The KARD/economy/computer state is now reconstructed and implemented, including authentic startup KARD 0-285, generated-KARD format/replacement, COMPUTABANK, COMPUTASHOP, password-letter discovery, scientist-gated regional passwords and RETURN status. The original KARD generator at $F061 is modeled, but the world/NPC stun-combat interaction that naturally reaches it is not yet connected to the modern playable scene.",
+    sources: ["COMPUTER_STATE.md", "Godot/scripts/computer_model.gd", "Godot/tests/test_computer_model.gd", "Godot/tests/test_computer_integration.gd", "verify_computer_state.py", "trace_kard_state.py"],
+    next: ["Trace entity types 4/5/6, projectile/stun collision and interaction timing through $EECD/$F026.", "Implement the NPC scientist encounter so generated KARDs are acquired naturally.", "Capture one original VICE stun -> KARD offer case."]
   },
   {
     id: "terrain.collision.taxonomy",
@@ -36,13 +36,13 @@ const findings = [
     next: ["Correlate classifier return classes with world locations and visible glyphs.", "Trace each class into collision masks and gameplay responses."]
   },
   {
-    id: "transition.flight-ground",
-    title: "Resolve the remaining special $E9E5==6 flight-ground return case",
-    family: "mode-transition",
-    location: "$10FB/$F4 -> $E000 -> $E60D supply; $E720 STAY ABOARD; EXIT SHIP -> outdoor $EB5B return",
-    finding: "The normal transition is reconstructed and implemented through the recovered SHIP SUPPLY state. $E720 is now verified as STAY ABOARD; EXIT SHIP is oxygen-gated and enters outdoor ground mode; $EB5B performs the later near-craft return. Remaining transition uncertainty is the $E9E5==6 special case that widens the negative X return bound.",
-    sources: ["FLIGHT_STATE.md", "TRANSITION_STATE.md", "SUPPLY_STATE.md", "Godot/scripts/flight_model.gd", "Godot/scripts/supply_model.gd", "Godot/tests/test_flight_model.gd", "Godot/tests/test_supply_model.gd", "trace_supply_state.py", "trace_ground_transition.py", "trace_ground_return.py"],
-    next: ["Determine the player-facing meaning and trigger of the $E9E5==6 special return range.", "Capture one controlled original VICE landing -> supply -> exit -> return round trip."]
+    id: "progression.endgame",
+    title: "Reconstruct progression-5 and the original endgame/ending condition",
+    family: "progression",
+    location: "$030E progression index; password success at $F202; progression-5 checks around $089C",
+    finding: "The five regional password gates are reconstructed and implemented: STACK, JEWEL, PARCH, SALON and GLOBE each advance $030E. The scientist-present $E9E5==6 return state is now identified and its $E760 outcome implemented. What happens after progression reaches 5, including the coordinate-gated logic around $089C and the player-facing ending, remains outside the completed computer milestone.",
+    sources: ["COMPUTER_STATE.md", "TRANSITION_STATE.md", "Godot/scripts/computer_model.gd", "Godot/tests/test_computer_integration.gd", "trace_computer_state.py", "trace_kard_state.py"],
+    next: ["Trace all reads of $030E when it equals 5, especially the $089C world-coordinate gate.", "Identify the final objective, success/ending transition and reset/credits consequences.", "Capture the original final-stage behavior in VICE if reproducible."]
   },
   {
     id: "ground.fine-scroll-collision",

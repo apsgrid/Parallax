@@ -21,7 +21,7 @@ Therefore REA must not be cited as the decompiler/disassembler authority for Par
 ## REA historical source graph
 
 WSL `import-reference-source` successfully created a `HistoricalSourceGraph` for the Godot reconstruction.
-- root SHA-256: `32f1cc363e8bc4561b42c34fb6d45120730ce7d3475ac6a4a2ae34bc4cd96b1d`
+- root SHA-256: `84a2d51eac854d069e2f8e315fdbfed74864f32521eece6d40cd831db8fcb9ca`
 - authority: `historical-reference`
 - includes hashed source, tests, project files, local generated world/graphics assets and documentation at audit time.
 
@@ -30,8 +30,8 @@ Generated graph JSON remains local under `rea_audit/`.
 ## REA reconstruction obligation ledger
 
 Authenticated review Evidence was generated with REA's own `createEvidence()` and `createEvidenceBundle()` implementation.
-- ledger ID: `rol_ec1fb777abbfcec519ba70b679797a222d32f92ced7de9d2b8b6c216e8a718e5`
-- closure digest: `9ece6aadc4dfd38882eaef88867aa4597ceacdedeb909851f73bd531e18c0458`
+- ledger ID: `rol_58f018a101ec393d1e2095f77f72ed7c610150c5516b8a8296f810528cbac14a`
+- closure digest: `b4c34910bbd105b20764ce9e153e5e2e04d39d9daec89fc6a2988fb340a42052`
 - status: `unknown` (intentionally conservative)
 - required obligations: 6
 - verified: 0
@@ -39,20 +39,23 @@ Authenticated review Evidence was generated with REA's own `createEvidence()` an
 
 Tracked obligations:
 1. shield behavior beyond toggle/status presentation;
-2. full KARD/account/password computer progression beyond the completed cardless terminal slice;
+2. scientist/NPC stun-combat and natural generated-KARD acquisition;
 3. exact collision-tile taxonomy;
-4. the remaining special `$E9E5 == 6` flight-ground return case;
-5. controlled runtime parity for the reconstructed outdoor/interior movement and terminal timing;
+4. progression-5/endgame behavior after the five regional passwords;
+5. controlled runtime parity for reconstructed outdoor/interior movement and terminal timing;
 6. exact ship/shadow projection ownership.
 
 ## Funes validation
 
-Current project memory source validates as 27 turns / 94 chunks / 0 rejected / 0 duplicate IDs before indexing.
+Current project memory source validates as 29 turns / 111 chunks / 0 rejected / 0 duplicate IDs before indexing.
 Recall checks correctly retrieved:
 - corrected Stage-5 range, byte count and SHA-256;
-- post-startup viewport/player coordinates;
-- landing-ready conditions;
-- the current SHIP SUPPLY → STAY ABOARD / oxygen-gated EXIT SHIP transition, with superseded $E720 wording removed by clean memory rebuild.
+- post-startup viewport/player coordinates and landing-ready conditions;
+- SHIP SUPPLY → STAY ABOARD / oxygen-gated EXIT SHIP;
+- authentic starting KARD `0-285` and 20 credits;
+- COMPUTABANK / COMPUTASHOP behavior and BONANZA PACK effects;
+- STACK / JEWEL / PARCH / SALON / GLOBE progression;
+- scientist-present `$E9E5 == 6` and solved/unsolved return behavior.
 
 Funes is a retrieval layer, not original-game authority.
 
@@ -86,7 +89,7 @@ The transition audit has since resolved the supply/disembark intermediate state:
 - `$E720` is the verified STAY ABOARD path back to flight;
 - EXIT SHIP requires carried oxygen `$CF30 != 0` before outdoor ground control begins.
 
-Remaining open transition evidence is limited to the `$E9E5 == 6` special case that widens the negative X return bound to -27. See `SUPPLY_STATE.md`.
+The `$E9E5 == 6` special case is now semantically resolved as the scientist-present local state. Its carried-scientist trigger, password-gate use and `$E760` return outcome are verified; only exact runtime/spatial parity of the widened -27 X allowance remains open. See `TRANSITION_STATE.md`, `SUPPLY_STATE.md` and `COMPUTER_STATE.md`.
 
 ## Second-pass finding: on-foot controls
 
@@ -128,4 +131,30 @@ The automated `test_vertical_slice.gd` now completes:
 
 **flight -> landing -> SHIP SUPPLY -> EXIT SHIP -> outdoor walking -> structure entry -> COMPUTABANK interaction -> structure exit -> return to craft -> flight**
 
-The first complete gameplay vertical slice is therefore implemented. Remaining computer work concerns deeper KARD/account/shop/password progression rather than the basic interior interaction loop. Runtime parity capture and exact interior raster/palette timing remain separate fidelity tasks; the verified `$80-$BF` charset swap is now reproduced by a dedicated generated interior atlas.
+The first complete gameplay vertical slice is therefore implemented. The KARD/account/shop/password progression layer has since also been reconstructed and implemented; remaining work is now outside the computer state itself. Runtime parity capture and exact interior raster/palette timing remain separate fidelity tasks; the verified `$80-$BF` charset swap is reproduced by a dedicated generated interior atlas.
+
+## Second-pass finding: KARD/economy/password computer state
+
+The computer layer is no longer an open reconstruction obligation.
+
+Verified and implemented findings now include:
+- authentic startup state: 20 credits, flight-endurance counter 99, one KARD `0-285`, PASS `-----`;
+- two-slot KARD records in `C-NNN` form;
+- exact generated-KARD class table and three 0-7 digits;
+- original full-inventory replacement rule that preserves a class-0 slot-A KARD;
+- common four-digit KARD authentication and A/B selection;
+- wrong class-0 number returns the KARD, while wrong class 1-5 destroys it;
+- COMPUTABANK class-0 balance query and class 1-5 random credit award/consumption;
+- COMPUTASHOP BONANZA PACK for 20 credits, including +30 flight endurance (cap 99), +20 carried oxygen (cap 49), +20 carried ammunition (cap 49), and +1 drug;
+- normal KARD/password terminals consuming class 1-5 KARDs to reveal the corresponding letter of STACK/JEWEL/PARCH/SALON/GLOBE;
+- current-progression-anchor selection of the special password gate;
+- TAKE AWAY scientist `$CF33 > 0` creating local type `$E9E5 == 6`;
+- scientist-required five-letter password entry, `$F229` success flag, `$030E` progression increment and PASS display reset;
+- `$E760` equipment consolidation and solved/unsolved scientist return behavior;
+- RETURN `$20C4 -> $1FD7 -> $2131` KARD/PASS status display.
+
+Godot now implements this state in ComputerModel, integrates it through FlightModel/SupplyModel, and exposes playable A/B KARD selection, numeric authentication, shop purchase, five-letter password input and RETURN status.
+
+Deterministic coverage now includes `test_computer_model.gd`, `test_computer_integration.gd` and the full vertical-slice test. The static verifier `verify_computer_state.py` independently checks the canonical runtime bytes.
+
+The REA open obligation has therefore moved to the separate scientist/NPC stun-combat path that naturally reaches the recovered KARD generator at `$F061`. A second new obligation tracks progression-5/endgame behavior after all five passwords.

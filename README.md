@@ -49,24 +49,24 @@ Key findings:
 - world-scroll motion application: \`$0B42\`
 - keyboard matrix scanner: \`$2085\`
 
-The original flight controls are now matched to code: RIGHT/LEFT rotate through 16 headings, DOWN climbs, UP dives, FIRE shoots lasers, SPACE toggles landing gear, F7 toggles shields, and RETURN opens datacard/password handling.
+The original flight controls are now matched to code: RIGHT/LEFT rotate through 16 headings, DOWN climbs, UP dives, FIRE shoots lasers, SPACE toggles landing gear, F7 toggles shields, and RETURN opens the recovered KARD/PASS status display.
 
 ## Next reverse-engineering targets
 
-Completed core milestones now include the heading tables, 480×480 world format, flight charset/palette, deterministic flight reference model, the normal flight ↔ ground round trip, SHIP SUPPLY/disembark, byte-aligned outdoor collision, on-foot controls/sprites, and the recovered `$C1-$C3 -> $E444` interior/computer layer.
+Completed core milestones now include the heading tables, 480×480 world format, flight charset/palette, deterministic flight reference model, the normal flight ↔ ground round trip, SHIP SUPPLY/disembark, byte-aligned outdoor collision, on-foot controls/sprites, the recovered `$C1-$C3 -> $E444` interior layer, and the complete KARD/bank/shop/password/RETURN computer state described in `COMPUTER_STATE.md`.
 
 The first complete gameplay vertical slice is now executable and regression-tested:
 
 **fly → land → SHIP SUPPLY → EXIT SHIP → walk → enter structure → interact with terminal → leave structure → return to craft → take off**
 
-Current targets beyond that milestone:
+Current targets beyond the completed interior/computer milestone:
 
-1. Complete KARD/account/password progression and the remaining scientist/computer interaction state.
-2. Resolve the special `$E9E5 == 6` return range.
+1. Reconstruct the scientist/NPC stun-combat loop that naturally generates and offers new KARDs.
+2. Complete the progression-5 endgame/ending condition after the five regional passwords.
 3. Assign exact semantics to the remaining flight collision tile classes.
 4. Identify sprite ownership for ship, shadow, projectiles and landing gear.
 5. Finish laser/enemy damage behavior and test whether shields have any gameplay effect.
-6. Verify interior raster/palette timing against the original; the `$80-$BF` charset swap is now reproduced.
-7. Capture controlled original VICE parity cases for outdoor collision and a complete interior entry/interaction/exit.
+6. Verify interior raster/palette timing against the original; the `$80-$BF` charset swap is reproduced.
+7. Capture controlled original VICE parity cases for outdoor collision, KARD acquisition and terminal transactions.
 
 The objective is not to port opaque 6502 code directly. The objective is to recover the game's rules, data and state transitions accurately enough to reimplement them cleanly in a modern engine.

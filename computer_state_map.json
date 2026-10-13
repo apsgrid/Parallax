@@ -1,0 +1,96 @@
+{
+  "image": {
+    "path": "Unpacked/playable_ram.bin",
+    "sha256": "232471c51e24254873f182b865378aca60a0b171490d75c66123e007e1cdb137"
+  },
+  "startup": {
+    "flight_endurance": {"address": "0xCF03", "value": 99, "confidence": "verified"},
+    "kard_count": {"address": "0xCF09", "value": 1, "confidence": "verified"},
+    "kard_a": {"addresses": ["0xCF0A","0xCF0B","0xCF0C","0xCF0D"], "display": "0-285", "confidence": "verified"},
+    "credits": {"address": "0xCF2E", "value": 20, "confidence": "verified"},
+    "password_display": {"addresses": ["0xCF29","0xCF2A","0xCF2B","0xCF2C","0xCF2D"], "display": "-----", "confidence": "verified"}
+  },
+  "kard": {
+    "format": "class-three_digits",
+    "max_carried": 2,
+    "generation_entry": "0xF061",
+    "class_table_address": "0xF10B",
+    "class_table": [1,0,2,0,3,0,4,0,5,0,1,0,2,0,3,0],
+    "digit_mask": "0x07",
+    "random_stream": {
+      "routine": "0xE977",
+      "cursor": "0xE976",
+      "table": "0x0900-0x09FF",
+      "rule": "increment 8-bit cursor then return table[cursor]",
+      "confidence": "verified"
+    },
+    "wrong_code": {
+      "class_0": "return_kard",
+      "class_1_to_5": "kard_lost"
+    },
+    "confidence": "verified"
+  },
+  "computabank": {
+    "entry": "0xED2C",
+    "class_0": "report_credit_balance_and_return_kard",
+    "class_1_to_5": "consume_kard_and_award_random_multiple_of_10_credits",
+    "credits_address": "0xCF2E",
+    "confidence": "verified"
+  },
+  "computashop": {
+    "entry": "0xEF3C",
+    "product": "BONANZA PACK",
+    "price": 20,
+    "requires_kard": true,
+    "consumes_kard": false,
+    "effects": {
+      "flight_endurance": {"delta": 30, "cap": 99, "address": "0xCF03"},
+      "carried_oxygen": {"delta": 20, "cap": 49, "address": "0xCF30"},
+      "carried_ammunition": {"delta": 20, "cap": 49, "address": "0xCF32"},
+      "drugs": {"delta": 1, "address": "0xCF05"}
+    },
+    "confidence": "verified"
+  },
+  "password_reader": {
+    "entry": "0xF12B",
+    "class_0": "invalid_kard_returned",
+    "class_1_to_5": "consume_kard_reveal_corresponding_password_letter",
+    "display_addresses": ["0xCF29","0xCF2A","0xCF2B","0xCF2C","0xCF2D"],
+    "passwords": ["STACK","JEWEL","PARCH","SALON","GLOBE"],
+    "confidence": "verified"
+  },
+  "progression_gate": {
+    "selector": "0xE89F",
+    "special_flag": "0xE85B",
+    "progression_index": "0x030E",
+    "anchors": [[13,15],[33,25],[45,50],[2,70],[63,84]],
+    "requires_local_entity_type": 6,
+    "entity_type_address": "0xE9E5",
+    "success_flag": "0xF229",
+    "success_handler": "0xF202",
+    "success": "set_F229_increment_030E_clear_password_display",
+    "confidence": "verified"
+  },
+  "scientist": {
+    "carried_address": "0xCF33",
+    "carried_to_local_type_6": "0xE01F",
+    "return_reconcile": "0xE760",
+    "unsolved_return": "restore_ship_scientist_and_clear_drugged_flag",
+    "solved_return": "do_not_restore_scientist",
+    "confidence": "verified"
+  },
+  "return_status": {
+    "keyboard_event": "0xCF28",
+    "keyboard_scan": "0x20C4",
+    "handler": "0x1FD7",
+    "builder": "0x2131",
+    "contents": ["KARD_A","KARD_B_if_present","PASS_five_letters"],
+    "confidence": "verified"
+  },
+  "open": [
+    "Scientist/NPC stun-combat path that naturally reaches KARD generation at 0xF061",
+    "Progression-5/endgame behavior",
+    "Controlled VICE parity for terminal transaction timing and presentation",
+    "Exact player-facing name of 0xCF03 flight endurance/energy counter"
+  ]
+}

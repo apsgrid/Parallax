@@ -80,6 +80,11 @@ func _test_complete_vertical_slice() -> void:
     _check(events["interior_terminal_opened"], "blocked D0 contact opens terminal")
     _check(events["interior_terminal_kind"] == InteriorModel.TERMINAL_BANK, "terminal is COMPUTABANK")
     _check(m.interior_model.terminal_open, "COMPUTABANK is modal")
+    _check(m.computer_model.kard_text(m.computer_model.kards[0]) == "0-285", "vertical slice starts with recovered KARD 0-285")
+    m.computer_model.press_action()
+    var bank_events := m.computer_model.submit_kard_code("0285")
+    _check(bank_events["kard_returned"], "vertical slice authenticates starting bank KARD")
+    _check(m.computer_model.credits == 20, "class-0 bank query preserves initial 20 credits")
 
     # Original $EC45 behavior: a different direction unwinds the modal
     # terminal back to the local-area movement loop.

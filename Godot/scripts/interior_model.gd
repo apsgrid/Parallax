@@ -47,6 +47,9 @@ var terminal_open := false
 var terminal_kind := TERMINAL_NONE
 var terminal_contact_bit := 0
 var region_index := 0
+var zone_index := 0
+var world_macro := Vector2i.ZERO
+var password_gate_active := false
 
 var _seed_pointer := 0
 var _seed_cursor := 0
@@ -69,6 +72,9 @@ func reset() -> void:
     terminal_kind = TERMINAL_NONE
     terminal_contact_bit = 0
     region_index = 0
+    zone_index = 0
+    world_macro = Vector2i.ZERO
+    password_gate_active = false
     _seed_pointer = 0
     _seed_cursor = 0
 
@@ -76,12 +82,18 @@ func reset() -> void:
 func enter(contact_code: int, macro_x: int, macro_y: int, current_region: int = 0) -> void:
     entry_code = contact_code
     region_index = current_region
+    zone_index = clampi(floori(float(macro_y) / 18.0), 0, 4)
+    world_macro = Vector2i(macro_x, macro_y)
+    password_gate_active = false
     layout = _build_layout(macro_x, macro_y, current_region)
     _set_entry_position(contact_code)
 
 
 func enter_with_layout(contact_code: int, tiles: Array) -> void:
     entry_code = contact_code
+    zone_index = 0
+    world_macro = Vector2i.ZERO
+    password_gate_active = false
     layout.clear()
     for row in tiles:
         layout.append(row.duplicate())
@@ -236,11 +248,11 @@ func _contact_code_for_bit(samples: Dictionary, bit: int) -> int:
 func terminal_text() -> String:
     match terminal_kind:
         TERMINAL_BANK:
-            return "WELCOME TO..\nCOMPUTABANK\n\nPLEASE INSERT\nYOUR KARD\n\nNO KARD AVAILABLE\n\nENTER: RETURN"
+            return "WELCOME TO..\nCOMPUTABANK\n\nPLEASE INSERT\nYOUR KARD"
         TERMINAL_SHOP:
-            return "WELCOME TO..\nCOMPUTASHOP\n\nKARD REQUIRED\n\nENTER: RETURN"
+            return "WELCOME TO..\nCOMPUTASHOP\n\nPRESS THE BUTTON"
         TERMINAL_PASSWORD:
-            return "THIS IS....\nTHE BIG ONE\n\nINSERT KARD\n\nNO KARD AVAILABLE\n\nENTER: RETURN"
+            return "THIS IS....\nTHE BIG ONE\n\nINSERT YOUR KARD"
     return ""
 
 
@@ -293,6 +305,7 @@ func _build_layout(macro_x: int, macro_y: int, current_region: int) -> Array:
             var dx := int(pair[0]) - macro_x
             var dy := int(pair[1]) - macro_y
             if dx >= -1 and dx <= 1 and dy >= -1 and dy <= 1:
+                password_gate_active = true
                 flags = 0x04
 
     if (flags & 0x01) != 0:

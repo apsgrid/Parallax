@@ -182,7 +182,7 @@ The Godot reference model implements this original directional escape behavior. 
 - the ordinary passability/direction rules;
 - direction-specific COMPUTABANK/COMPUTASHOP/KARD terminal dispatch;
 - `$20` left-boundary exit;
-- modal initial-state/cardless terminal interaction.
+- modal terminal interaction handed off to the recovered KARD/economy/password state machine.
 
 `Godot/scripts/main.gd` renders the recovered room, switches the player/camera into local coordinates, shows the recovered terminal interaction panel and restores outdoor rendering on exit.
 
@@ -194,11 +194,11 @@ The Godot reference model implements this original directional escape behavior. 
 
 The first complete gameplay vertical slice is implemented.
 
-Still open beyond that milestone:
+The terminal economy/progression state is now reconstructed separately in `COMPUTER_STATE.md`, including authentic startup KARD `0-285`, bank/shop behavior, password-letter KARDs, all five regional passwords, scientist-gated progression and RETURN KARD/PASS display.
 
-- full KARD ownership/account state and all bank transaction details;
-- complete COMPUTASHOP purchase inventory effects beyond already traced original routines;
-- live entry of all five progression passwords in the modern UI;
-- scientist/entity interactions within local areas;
-- controlled VICE parity capture for an entire interior entry/terminal/exit sequence;
-- controlled runtime parity of the interior raster/palette timing (the verified `$80-$BF` charset swap is now rendered by a dedicated generated atlas).
+Still open beyond this layer:
+
+- scientist/NPC movement and stun combat that naturally produces new KARD encounters;
+- progression-5/endgame behavior;
+- controlled VICE parity capture for a complete interior/KARD transaction sequence;
+- controlled runtime parity of interior raster/palette timing.

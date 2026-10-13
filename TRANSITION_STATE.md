@@ -94,7 +94,7 @@ Normal accepted range:
 - X: -7 through +7;
 - Y: -7 through +7.
 
-When `$E9E5 == 6`, the lower X bound is widened to -27 while the upper bound remains +7. The reason for this special case is still OPEN.
+When `$E9E5 == 6`, the lower X bound is widened to -27 while the upper bound remains +7. `$E9E5 == 6` is now verified as the scientist-present local state: carried scientist `$CF33 > 0` creates type 6 at `$E01F`, the regional password gate requires it, and `$E760` conditionally returns that scientist to the ship when the gate was not solved. The exact spatial reason for the additional 20-pixel negative-X allowance remains a runtime-parity detail rather than an unknown state identity.
 
 When the proximity gate succeeds:
 
@@ -154,4 +154,5 @@ The modern scene now exposes the recovered supply/disembark state and the recove
 - `$EB5B` normal return-to-ship proximity gate and flag restoration: **VERIFIED**.
 - SHIP SUPPLY intermediate state and oxygen-gated EXIT SHIP: **VERIFIED**.
 - `$E720` STAY ABOARD path: **VERIFIED**.
-- Meaning of `$E9E5 == 6` widened X range: **OPEN**.
+- `$E9E5 == 6` as scientist-present state and its special return handling: **VERIFIED**.
+- Exact spatial/timing reason for the widened -27 X allowance: **OPEN runtime parity detail**.

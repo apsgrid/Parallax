@@ -4,6 +4,7 @@ const FlightModel = preload("res://scripts/flight_model.gd")
 const GroundModel = preload("res://scripts/ground_model.gd")
 const SupplyModel = preload("res://scripts/supply_model.gd")
 const InteriorModel = preload("res://scripts/interior_model.gd")
+const ComputerModel = preload("res://scripts/computer_model.gd")
 
 const TILE_SIZE := 2.0
 const SIM_UNITS_PER_TILE := 8.0
@@ -39,6 +40,9 @@ var supply_panel: PanelContainer
 var supply_label: Label
 var terminal_panel: PanelContainer
 var terminal_label: Label
+var kard_panel: PanelContainer
+var kard_label: Label
+var kard_panel_frames := 0
 var gear_nodes := []
 var footprint_markers := []
 var bolts := []
@@ -79,19 +83,21 @@ func _ready() -> void:
     _build_hud()
     _build_supply_hud()
     _build_terminal_hud()
+    _build_kard_hud()
     _update_visuals()
     _update_hud()
 
 
 func _physics_process(_delta: float) -> void:
+    var terminal_active := model.in_interior() and model.interior_model.terminal_open
     var input_bits := 0
-    if Input.is_key_pressed(KEY_RIGHT) or Input.is_key_pressed(KEY_D):
+    if Input.is_key_pressed(KEY_RIGHT) or (not terminal_active and Input.is_key_pressed(KEY_D)):
         input_bits |= 0x01
-    if Input.is_key_pressed(KEY_LEFT) or Input.is_key_pressed(KEY_A):
+    if Input.is_key_pressed(KEY_LEFT) or (not terminal_active and Input.is_key_pressed(KEY_A)):
         input_bits |= 0x02
-    if Input.is_key_pressed(KEY_DOWN) or Input.is_key_pressed(KEY_S):
+    if Input.is_key_pressed(KEY_DOWN) or (not terminal_active and Input.is_key_pressed(KEY_S)):
         input_bits |= 0x04
-    if Input.is_key_pressed(KEY_UP) or Input.is_key_pressed(KEY_W):
+    if Input.is_key_pressed(KEY_UP) or (not terminal_active and Input.is_key_pressed(KEY_W)):
         input_bits |= 0x08
 
     var gear_now := Input.is_key_pressed(KEY_SPACE)
@@ -119,12 +125,9 @@ func _physics_process(_delta: float) -> void:
     last_shield = shield_now
 
     var return_now := Input.is_key_pressed(KEY_ENTER)
-    if return_now and not last_return:
-        if model.in_interior() and model.interior_model.terminal_open:
-            status_message = "%s — returning to interior" % InteriorModel.terminal_name(model.interior_model.terminal_kind)
-            model.close_interior_terminal()
-        else:
-            status_message = "Datacard display outside terminal interaction: not wired yet"
+    if return_now and not last_return and not terminal_active:
+        _show_kard_status()
+        status_message = "KARD/PASS status"
     last_return = return_now
 
     var debug_hud_now := Input.is_key_pressed(KEY_F1)
@@ -189,11 +192,121 @@ func _physics_process(_delta: float) -> void:
     if events["exited_interior"]:
         status_message = "EXIT STRUCTURE — outdoor state restored"
 
+    if kard_panel_frames > 0:
+        kard_panel_frames -= 1
+        if kard_panel_frames == 0 and kard_panel != null:
+            kard_panel.visible = false
+
     _maybe_stream_world()
     _update_bolts()
     _update_visuals()
     _sample_footprint()
     _update_hud()
+
+
+func _unhandled_key_input(event: InputEvent) -> void:
+    if not (event is InputEventKey):
+        return
+    var key_event := event as InputEventKey
+    if not key_event.pressed or key_event.echo:
+        return
+    if not (model.in_interior() and model.interior_model.terminal_open):
+        return
+
+    var c = model.computer_model
+    var events := {}
+
+    if c.state == ComputerModel.STATE_SELECT_KARD:
+        if key_event.keycode == KEY_A:
+            events = c.select_kard(0)
+        elif key_event.keycode == KEY_B:
+            events = c.select_kard(1)
+        else:
+            return
+    elif c.state == ComputerModel.STATE_SHOP_OFFER and key_event.keycode == KEY_B:
+        events = c.buy_bonanza(model.supply_model)
+    elif key_event.keycode == KEY_BACKSPACE:
+        c.backspace()
+        return
+    elif c.state == ComputerModel.STATE_ENTER_KARD_CODE or c.state == ComputerModel.STATE_PASSWORD_ENTRY:
+        var character := _terminal_character_for_key(key_event.keycode)
+        if character.is_empty():
+            return
+        events = c.input_character(character)
+    elif key_event.keycode == KEY_Z or key_event.keycode == KEY_ENTER:
+        events = c.press_action(model.supply_model)
+    else:
+        return
+
+    _handle_computer_events(events)
+
+
+func _handle_computer_events(events: Dictionary) -> void:
+    if events.is_empty():
+        return
+    if bool(events.get("shop_purchased", false)):
+        status_message = "COMPUTASHOP — BONANZA PACK purchased"
+    elif bool(events.get("shop_insufficient_credits", false)):
+        status_message = "COMPUTASHOP — insufficient credits"
+    elif bool(events.get("password_letter_revealed", false)):
+        status_message = "KARD class %d revealed letter %s" % [
+            int(events.get("revealed_class", 0)),
+            String(events.get("revealed_letter", ""))
+        ]
+    elif bool(events.get("password_correct", false)):
+        status_message = "PASSWORD ACCEPTED — progression %d / 5" % int(events.get("progression_index", 0))
+    elif bool(events.get("password_incorrect", false)):
+        status_message = "PASSWORD INVALID"
+    elif bool(events.get("kard_lost", false)):
+        status_message = "INCORRECT — KARD LOST"
+    elif bool(events.get("kard_returned", false)):
+        status_message = "KARD returned"
+    elif int(events.get("credits_changed", 0)) > 0:
+        status_message = "%d CREDITS TAKEN" % int(events["credits_changed"])
+
+    if bool(events.get("close_terminal", false)):
+        model.close_interior_terminal()
+
+
+func _terminal_character_for_key(keycode: int) -> String:
+    match keycode:
+        KEY_0: return "0"
+        KEY_1: return "1"
+        KEY_2: return "2"
+        KEY_3: return "3"
+        KEY_4: return "4"
+        KEY_5: return "5"
+        KEY_6: return "6"
+        KEY_7: return "7"
+        KEY_8: return "8"
+        KEY_9: return "9"
+        KEY_A: return "A"
+        KEY_B: return "B"
+        KEY_C: return "C"
+        KEY_D: return "D"
+        KEY_E: return "E"
+        KEY_F: return "F"
+        KEY_G: return "G"
+        KEY_H: return "H"
+        KEY_I: return "I"
+        KEY_J: return "J"
+        KEY_K: return "K"
+        KEY_L: return "L"
+        KEY_M: return "M"
+        KEY_N: return "N"
+        KEY_O: return "O"
+        KEY_P: return "P"
+        KEY_Q: return "Q"
+        KEY_R: return "R"
+        KEY_S: return "S"
+        KEY_T: return "T"
+        KEY_U: return "U"
+        KEY_V: return "V"
+        KEY_W: return "W"
+        KEY_X: return "X"
+        KEY_Y: return "Y"
+        KEY_Z: return "Z"
+    return ""
 
 
 func _build_environment() -> void:
@@ -496,8 +609,62 @@ func _build_terminal_hud() -> void:
     terminal_panel.add_child(terminal_label)
 
 
+func _build_kard_hud() -> void:
+    var canvas := CanvasLayer.new()
+    canvas.layer = 4
+    add_child(canvas)
+
+    kard_panel = PanelContainer.new()
+    kard_panel.position = Vector2(850, 22)
+    kard_panel.custom_minimum_size = Vector2(400, 150)
+
+    var style := StyleBoxFlat.new()
+    style.bg_color = Color(0.01, 0.012, 0.018, 0.92)
+    style.border_width_left = 1
+    style.border_width_top = 1
+    style.border_width_right = 1
+    style.border_width_bottom = 1
+    style.border_color = Color(0.58, 0.68, 0.74, 0.9)
+    style.corner_radius_top_left = 5
+    style.corner_radius_top_right = 5
+    style.corner_radius_bottom_left = 5
+    style.corner_radius_bottom_right = 5
+    kard_panel.add_theme_stylebox_override("panel", style)
+    kard_panel.visible = false
+    canvas.add_child(kard_panel)
+
+    kard_label = Label.new()
+    kard_label.custom_minimum_size = Vector2(380, 130)
+    kard_label.add_theme_font_size_override("font_size", 21)
+    kard_label.add_theme_color_override("font_color", Color(0.92, 0.94, 0.90))
+    kard_label.add_theme_constant_override("line_spacing", 5)
+    kard_panel.add_child(kard_label)
+
+
+func _show_kard_status() -> void:
+    var c = model.computer_model
+    var lines := []
+    if c.kard_count() >= 1:
+        lines.append("KARD A  " + c.kard_text(c.kards[0]))
+    if c.kard_count() >= 2:
+        lines.append("KARD B  " + c.kard_text(c.kards[1]))
+    if lines.is_empty():
+        lines.append("NO KARD")
+    lines.append("PASS    " + "".join(c.password_display))
+    kard_label.text = "\n".join(lines)
+    kard_panel.visible = true
+    kard_panel_frames = 150
+
+
 func _update_terminal_hud() -> void:
-    terminal_label.text = model.interior_model.terminal_text()
+    var c = model.computer_model
+    var header := "CREDITS %02d   KARDS %d   PASS %s   STAGE %d/5\n\n" % [
+        c.credits,
+        c.kard_count(),
+        "".join(c.password_display),
+        c.progression_index,
+    ]
+    terminal_label.text = header + c.screen_text()
 
 
 func _sample_footprint() -> int:
