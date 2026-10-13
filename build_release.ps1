@@ -1,5 +1,5 @@
 param(
-    [ValidateSet("all","windows","web","android")]
+    [ValidateSet("all","windows","web","android","linux")]
     [string]$Target = "all",
     [switch]$Package
 )
@@ -56,6 +56,7 @@ function Export-Preset([string]$Preset,[string]$Path,[bool]$Debug=$false) {
 
 if ($Target -in @("all","windows")) { Export-Preset "Windows" "$BuildRoot\Windows\Parallax.exe" }
 if ($Target -in @("all","web")) { Export-Preset "Web" "$BuildRoot\Web\index.html" }
+if ($Target -in @("all","linux")) { Export-Preset "Linux-SteamDeck" "$BuildRoot\Linux\Parallax.x86_64" }
 if ($Target -in @("all","android")) {
     if (-not $AndroidSdk) { throw "Android SDK not found. Set ANDROID_SDK_ROOT." }
     if (-not $JavaHome) { throw "JAVA_HOME not found." }
@@ -72,6 +73,13 @@ if ($Package -and $Target -eq "all") {
     Compress-Archive -Path "$BuildRoot\Windows\Parallax.exe" -DestinationPath "$Release\Parallax-Windows-x64.zip" -CompressionLevel Optimal
     Compress-Archive -Path "$BuildRoot\Web\*" -DestinationPath "$Release\Parallax-Web.zip" -CompressionLevel Optimal
     Copy-Item "$BuildRoot\Android\Parallax.apk" "$Release\Parallax-Android-arm64.apk"
+
+    # Preserve the Linux executable bit inside the Steam Deck/Linux archive.
+    $linuxDir = "/mnt/" + $BuildRoot.Substring(0,1).ToLower() + $BuildRoot.Substring(2).Replace("\","/") + "/Linux"
+    $linuxSrc = "$linuxDir/Parallax.x86_64"
+    $releaseWsl = "/mnt/" + $Release.Substring(0,1).ToLower() + $Release.Substring(2).Replace("\","/")
+    & wsl.exe -d Ubuntu -- bash -lc "chmod +x '$linuxSrc' && tar -C '$linuxDir' -czf '$releaseWsl/Parallax-Linux-SteamDeck-x86_64.tar.gz' Parallax.x86_64"
+    if ($LASTEXITCODE -ne 0) { throw "Linux/Steam Deck packaging failed" }
 
     $files = Get-ChildItem $Release -File | Sort-Object Name
     $lines = foreach ($file in $files) {

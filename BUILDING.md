@@ -44,7 +44,8 @@ The checked-in presets are:
 
 - `Windows` — Windows x86-64 release executable;
 - `Web` — non-threaded WebAssembly build;
-- `Android` — arm64 Android APK.
+- `Android` — arm64 Android APK;
+- `Linux-SteamDeck` — Linux x86-64 single-binary export suitable for SteamOS/Steam Deck.
 
 ## Android toolchain
 
@@ -77,6 +78,7 @@ Individual targets:
 .\build_release.ps1 -Target windows
 .\build_release.ps1 -Target web
 .\build_release.ps1 -Target android
+.\build_release.ps1 -Target linux
 ```
 
 Artifacts are written below ignored `Builds/`.
@@ -86,6 +88,7 @@ With `-Package`, the release directory contains:
 - `Parallax-Windows-x64.zip`;
 - `Parallax-Web.zip`;
 - `Parallax-Android-arm64.apk`;
+- `Parallax-Linux-SteamDeck-x86_64.tar.gz`;
 - `SHA256SUMS.txt`.
 
 ## Controls

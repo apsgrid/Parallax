@@ -74,6 +74,6 @@ The objective is not to port opaque 6502 code directly. The objective is to reco
 
 ## Builds and platforms
 
-The Godot reconstruction now has reproducible export presets for **Windows x86-64, Web and Android arm64**. Android/Web touchscreen play uses an on-screen control layer that feeds the same recovered simulation inputs as the desktop keyboard rather than a separate mobile ruleset.
+The Godot reconstruction now has reproducible export presets for **Windows x86-64, Web, Android arm64 and Linux x86-64/Steam Deck**. Android/Web touchscreen play uses an on-screen control layer that feeds the same recovered simulation inputs as the desktop keyboard rather than a separate mobile ruleset.
 
 See `BUILDING.md` for regeneration, toolchain, packaging and validation instructions. Original source media and generated C64-derived runtime assets remain excluded from Git; local/private builds include the generated runtime data required to play.

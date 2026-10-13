@@ -671,7 +671,8 @@ func _load_tile_atlases() -> void:
     tile_atlas_images.clear()
     for zone in range(6):
         var relative_path := "res://generated/tiles_zone_%d.png" % zone
-        var image := Image.load_from_file(ProjectSettings.globalize_path(relative_path))
+        var texture := load(relative_path) as Texture2D
+        var image: Image = texture.get_image() if texture != null else null
         if image == null or image.is_empty():
             push_error("Unable to load generated C64 tile atlas: " + relative_path)
             tile_atlas_images.append(Image.create_empty(128, 128, false, Image.FORMAT_RGB8))
@@ -686,7 +687,8 @@ func _load_interior_atlases() -> void:
     interior_material_cache.clear()
     for zone in range(6):
         var relative_path := "res://generated/interior_tiles_zone_%d.png" % zone
-        var image := Image.load_from_file(ProjectSettings.globalize_path(relative_path))
+        var texture := load(relative_path) as Texture2D
+        var image: Image = texture.get_image() if texture != null else null
         if image == null or image.is_empty():
             push_error("Unable to load generated C64 interior tile atlas: " + relative_path)
             interior_atlas_images.append(Image.create_empty(128, 128, false, Image.FORMAT_RGB8))
@@ -698,11 +700,11 @@ func _load_ground_sprites() -> void:
     ground_sprite_textures.clear()
     for frame in range(0x50, 0x5C):
         var relative_path := "res://generated/ground_sprites/ground_%02X.png" % frame
-        var image := Image.load_from_file(ProjectSettings.globalize_path(relative_path))
-        if image == null or image.is_empty():
+        var texture := load(relative_path) as Texture2D
+        if texture == null:
             push_error("Unable to load generated C64 ground sprite: " + relative_path)
             continue
-        ground_sprite_textures[frame] = ImageTexture.create_from_image(image)
+        ground_sprite_textures[frame] = texture
 
 
 func _load_encounter_sprites() -> void:
@@ -716,11 +718,11 @@ func _load_encounter_sprites() -> void:
 
     for ptr in pointers:
         var relative_path := "res://generated/encounter_sprites/ptr_%02X.png" % ptr
-        var image := Image.load_from_file(ProjectSettings.globalize_path(relative_path))
-        if image == null or image.is_empty():
+        var texture := load(relative_path) as Texture2D
+        if texture == null:
             push_error("Unable to load generated C64 encounter sprite: " + relative_path)
             continue
-        encounter_sprite_textures[ptr] = ImageTexture.create_from_image(image)
+        encounter_sprite_textures[ptr] = texture
 
 
 func _load_flight_object_sprites() -> void:
@@ -737,11 +739,11 @@ func _load_flight_object_sprites() -> void:
 
     for ptr in pointers:
         var relative_path := "res://generated/flight_object_sprites/ptr_%02X.png" % ptr
-        var image := Image.load_from_file(ProjectSettings.globalize_path(relative_path))
-        if image == null or image.is_empty():
+        var texture := load(relative_path) as Texture2D
+        if texture == null:
             push_error("Unable to load generated C64 flight-object sprite: " + relative_path)
             continue
-        flight_object_textures[ptr] = ImageTexture.create_from_image(image)
+        flight_object_textures[ptr] = texture
 
 
 func _build_world() -> void:

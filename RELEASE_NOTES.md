@@ -27,6 +27,7 @@ Build targets:
 
 - Windows x86-64;
 - WebAssembly/Web;
-- Android arm64 debug-signed sideload APK.
+- Android arm64 debug-signed sideload APK;
+- Linux x86-64 / Steam Deck.
 
 The source repository intentionally excludes original game media and generated C64-derived runtime assets. Private local builds contain the generated runtime resources required to play.
