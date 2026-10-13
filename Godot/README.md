@@ -81,3 +81,13 @@ Controls:
 The deterministic reference layers live in `scripts/flight_model.gd`, `ground_model.gd`, `supply_model.gd`, `interior_model.gd`, `computer_model.gd`, `encounter_model.gd`, and `endgame_model.gd`. Endgame coverage lives in `tests/test_endgame_model.gd` and `test_endgame_integration.gd`; scientist/stun coverage lives in `test_encounter_model.gd` and `test_scientist_loop.gd`; computer/economy coverage lives in `test_computer_model.gd` and `test_computer_integration.gd`; the complete gameplay-loop regression lives in `tests/test_vertical_slice.gd`.
 
 Generated local world/graphics files are intentionally excluded from Git because they contain derived original game data. They are regenerated from the authorised local source media. Interior assets are rebuilt with `extract_interior_runtime.py` and `generate_interior_tile_atlases.py`; scientist/stun sprite assets are rebuilt with `generate_encounter_sprites.py`.
+
+
+Platform/export notes:
+- Windows x86-64, Web and Android arm64 presets are checked in.
+- Touchscreen builds expose D-pad, FIRE, GEAR, SPEED, SHIELD and STATUS controls.
+- KARD Y/N prompts have touch buttons.
+- Terminal interaction exposes a touch input field using the platform virtual keyboard.
+- Touch controls feed the same `FlightModel` / `GroundModel` / terminal state machines as keyboard input.
+- Android package ID: `com.apsgrid.parallax`; current sideload APK is debug-signed because no release signing secret is stored in the repository.
+- See the root `BUILDING.md`.

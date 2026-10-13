@@ -8,6 +8,7 @@ config_version=5
 config/name="Parallax Remake"
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.7")
+config/icon="res://icon.svg"
 
 [display]
 
@@ -25,4 +26,5 @@ common/physics_ticks_per_second=50
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
 environment/defaults/default_clear_color=Color(0.025, 0.03, 0.04, 1)

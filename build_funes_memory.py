@@ -8,6 +8,7 @@ out=outdir/"parallax-reconstruction.funes.jsonl"
 
 docs=[
     ("project-overview","README.md"),
+    ("building","BUILDING.md"),
     ("reverse-engineering-notes","RE_NOTES.md"),
     ("flight-state","FLIGHT_STATE.md"),
     ("transition-state","TRANSITION_STATE.md"),

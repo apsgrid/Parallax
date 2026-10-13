@@ -53,6 +53,26 @@ var kard_offer_panel: PanelContainer
 var kard_offer_label: Label
 var endgame_panel: PanelContainer
 var endgame_label: Label
+
+var touch_layer: CanvasLayer
+var touch_root: Control
+var touch_terminal_panel: PanelContainer
+var touch_terminal_input: LineEdit
+var touch_kard_panel: PanelContainer
+var touch_controls_enabled := false
+var touch_pressed := {
+    "left": false,
+    "right": false,
+    "up": false,
+    "down": false,
+    "fire": false,
+    "gear": false,
+    "mode": false,
+    "shield": false,
+    "return": false,
+}
+var _touch_text_guard := false
+
 var gear_nodes := []
 var footprint_markers := []
 var bolts := []
@@ -99,6 +119,7 @@ func _ready() -> void:
     _build_kard_hud()
     _build_kard_offer_hud()
     _build_endgame_hud()
+    _build_touch_controls()
     _update_visuals()
     _update_hud()
 
@@ -108,16 +129,32 @@ func _physics_process(_delta: float) -> void:
     var offer_active := model.in_interior() and model.kard_offer_pending()
     var modal_input := terminal_active or offer_active
     var input_bits := 0
-    if not offer_active and (Input.is_key_pressed(KEY_RIGHT) or (not terminal_active and Input.is_key_pressed(KEY_D))):
+    if not offer_active and (
+        Input.is_key_pressed(KEY_RIGHT)
+        or (not terminal_active and Input.is_key_pressed(KEY_D))
+        or bool(touch_pressed["right"])
+    ):
         input_bits |= 0x01
-    if not offer_active and (Input.is_key_pressed(KEY_LEFT) or (not terminal_active and Input.is_key_pressed(KEY_A))):
+    if not offer_active and (
+        Input.is_key_pressed(KEY_LEFT)
+        or (not terminal_active and Input.is_key_pressed(KEY_A))
+        or bool(touch_pressed["left"])
+    ):
         input_bits |= 0x02
-    if not offer_active and (Input.is_key_pressed(KEY_DOWN) or (not terminal_active and Input.is_key_pressed(KEY_S))):
+    if not offer_active and (
+        Input.is_key_pressed(KEY_DOWN)
+        or (not terminal_active and Input.is_key_pressed(KEY_S))
+        or bool(touch_pressed["down"])
+    ):
         input_bits |= 0x04
-    if not offer_active and (Input.is_key_pressed(KEY_UP) or (not terminal_active and Input.is_key_pressed(KEY_W))):
+    if not offer_active and (
+        Input.is_key_pressed(KEY_UP)
+        or (not terminal_active and Input.is_key_pressed(KEY_W))
+        or bool(touch_pressed["up"])
+    ):
         input_bits |= 0x08
 
-    var fire_now := Input.is_key_pressed(KEY_Z)
+    var fire_now := Input.is_key_pressed(KEY_Z) or bool(touch_pressed["fire"])
     var fire_pressed := fire_now and not last_fire
     last_fire = fire_now
 
@@ -141,25 +178,25 @@ func _physics_process(_delta: float) -> void:
         _update_hud()
         return
 
-    var gear_now := Input.is_key_pressed(KEY_SPACE)
+    var gear_now := Input.is_key_pressed(KEY_SPACE) or bool(touch_pressed["gear"])
     if gear_now and not last_gear:
         model.toggle_landing_gear()
         status_message = "Landing gear %s" % ("DOWN" if model.landing_gear else "UP")
     last_gear = gear_now
 
-    var mode_now := Input.is_key_pressed(KEY_TAB)
+    var mode_now := Input.is_key_pressed(KEY_TAB) or bool(touch_pressed["mode"])
     if mode_now and not last_mode:
         model.toggle_speed_mode()
         status_message = "Recovered velocity table mode %d" % model.speed_mode
     last_mode = mode_now
 
-    var shield_now := Input.is_key_pressed(KEY_F7)
+    var shield_now := Input.is_key_pressed(KEY_F7) or bool(touch_pressed["shield"])
     if shield_now and not last_shield:
         shields_on = not shields_on
         status_message = "Shields %s" % ("ON" if shields_on else "OFF")
     last_shield = shield_now
 
-    var return_now := Input.is_key_pressed(KEY_ENTER)
+    var return_now := Input.is_key_pressed(KEY_ENTER) or bool(touch_pressed["return"])
     if return_now and not last_return and not modal_input:
         _show_kard_status()
         status_message = "KARD/PASS status"
@@ -368,6 +405,200 @@ func _terminal_character_for_key(keycode: int) -> String:
         KEY_Y: return "Y"
         KEY_Z: return "Z"
     return ""
+
+
+
+
+func _build_touch_controls() -> void:
+    touch_controls_enabled = OS.has_feature("mobile") or DisplayServer.is_touchscreen_available()
+
+    touch_layer = CanvasLayer.new()
+    touch_layer.layer = 12
+    add_child(touch_layer)
+
+    touch_root = Control.new()
+    touch_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    touch_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    touch_root.visible = touch_controls_enabled
+    touch_layer.add_child(touch_root)
+
+    # C64 directional priority is still resolved by the reference models;
+    # these buttons only feed the same held-bit state as the keyboard.
+    _make_touch_hold_button("UP", Rect2(105, 475, 90, 68), "up")
+    _make_touch_hold_button("LEFT", Rect2(15, 545, 90, 68), "left")
+    _make_touch_hold_button("RIGHT", Rect2(195, 545, 90, 68), "right")
+    _make_touch_hold_button("DOWN", Rect2(105, 615, 90, 68), "down")
+
+    _make_touch_fire_button("FIRE", Rect2(1085, 545, 165, 120))
+    _make_touch_hold_button("GEAR", Rect2(940, 610, 125, 55), "gear")
+    _make_touch_hold_button("SPEED", Rect2(940, 550, 125, 55), "mode")
+    _make_touch_hold_button("SHIELD", Rect2(940, 490, 125, 55), "shield")
+    _make_touch_hold_button("STATUS", Rect2(1085, 480, 165, 55), "return")
+
+    touch_kard_panel = PanelContainer.new()
+    touch_kard_panel.position = Vector2(500, 515)
+    touch_kard_panel.custom_minimum_size = Vector2(280, 90)
+    touch_kard_panel.visible = false
+    touch_root.add_child(touch_kard_panel)
+    var kard_row := HBoxContainer.new()
+    kard_row.alignment = BoxContainer.ALIGNMENT_CENTER
+    touch_kard_panel.add_child(kard_row)
+    var yes_button := Button.new()
+    yes_button.text = "YES / TAKE"
+    yes_button.custom_minimum_size = Vector2(125, 70)
+    yes_button.focus_mode = Control.FOCUS_NONE
+    yes_button.pressed.connect(_answer_touch_kard.bind(true))
+    kard_row.add_child(yes_button)
+    var no_button := Button.new()
+    no_button.text = "NO"
+    no_button.custom_minimum_size = Vector2(125, 70)
+    no_button.focus_mode = Control.FOCUS_NONE
+    no_button.pressed.connect(_answer_touch_kard.bind(false))
+    kard_row.add_child(no_button)
+
+    touch_terminal_panel = PanelContainer.new()
+    touch_terminal_panel.position = Vector2(305, 535)
+    touch_terminal_panel.custom_minimum_size = Vector2(620, 155)
+    touch_terminal_panel.visible = false
+    touch_root.add_child(touch_terminal_panel)
+
+    var terminal_box := VBoxContainer.new()
+    touch_terminal_panel.add_child(terminal_box)
+    var terminal_hint := Label.new()
+    terminal_hint.text = "TERMINAL INPUT — tap field for keyboard"
+    terminal_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    terminal_box.add_child(terminal_hint)
+
+    touch_terminal_input = LineEdit.new()
+    touch_terminal_input.placeholder_text = "KARD / password"
+    touch_terminal_input.virtual_keyboard_enabled = true
+    touch_terminal_input.keep_editing_on_text_submit = true
+    touch_terminal_input.text_changed.connect(_on_touch_terminal_text_changed)
+    terminal_box.add_child(touch_terminal_input)
+
+    var terminal_buttons := HBoxContainer.new()
+    terminal_buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+    terminal_box.add_child(terminal_buttons)
+    for spec in [["A", "A"], ["B", "B"]]:
+        var b := Button.new()
+        b.text = String(spec[0])
+        b.custom_minimum_size = Vector2(80, 45)
+        b.focus_mode = Control.FOCUS_NONE
+        b.pressed.connect(_touch_terminal_character.bind(String(spec[1])))
+        terminal_buttons.add_child(b)
+
+    var back_button := Button.new()
+    back_button.text = "BACK"
+    back_button.custom_minimum_size = Vector2(100, 45)
+    back_button.focus_mode = Control.FOCUS_NONE
+    back_button.pressed.connect(_touch_terminal_backspace)
+    terminal_buttons.add_child(back_button)
+
+    var action_button := Button.new()
+    action_button.text = "ENTER / FIRE"
+    action_button.custom_minimum_size = Vector2(145, 45)
+    action_button.focus_mode = Control.FOCUS_NONE
+    action_button.pressed.connect(_touch_terminal_action)
+    terminal_buttons.add_child(action_button)
+
+
+func _make_touch_hold_button(text_value: String, rect: Rect2, flag: String) -> Button:
+    var button := Button.new()
+    button.text = text_value
+    button.position = rect.position
+    button.size = rect.size
+    button.focus_mode = Control.FOCUS_NONE
+    button.modulate = Color(1.0, 1.0, 1.0, 0.72)
+    button.add_theme_font_size_override("font_size", 18)
+    button.button_down.connect(_set_touch_flag.bind(flag, true))
+    button.button_up.connect(_set_touch_flag.bind(flag, false))
+    touch_root.add_child(button)
+    return button
+
+
+func _make_touch_fire_button(text_value: String, rect: Rect2) -> Button:
+    var button := Button.new()
+    button.text = text_value
+    button.position = rect.position
+    button.size = rect.size
+    button.focus_mode = Control.FOCUS_NONE
+    button.modulate = Color(1.0, 1.0, 1.0, 0.78)
+    button.add_theme_font_size_override("font_size", 22)
+    button.button_down.connect(_touch_fire_down)
+    button.button_up.connect(_touch_fire_up)
+    touch_root.add_child(button)
+    return button
+
+
+func _set_touch_flag(flag: String, pressed: bool) -> void:
+    if touch_pressed.has(flag):
+        touch_pressed[flag] = pressed
+
+
+func _touch_fire_down() -> void:
+    if model.in_interior() and model.interior_model.terminal_open:
+        _touch_terminal_action()
+        touch_pressed["fire"] = false
+        return
+    touch_pressed["fire"] = true
+
+
+func _touch_fire_up() -> void:
+    touch_pressed["fire"] = false
+
+
+func _answer_touch_kard(take: bool) -> void:
+    if not model.kard_offer_pending():
+        return
+    var answer := model.answer_kard_offer(take)
+    if take:
+        status_message = "KARD TAKEN — scientist accompanying" if answer["scientist_following"] else "KARD TAKEN"
+    else:
+        status_message = "KARD DECLINED — scientist accompanying" if answer["scientist_following"] else "KARD DECLINED"
+
+
+func _on_touch_terminal_text_changed(value: String) -> void:
+    if _touch_text_guard or value.is_empty():
+        return
+    _touch_text_guard = true
+    for character in value.to_upper():
+        if (character >= "0" and character <= "9") or (character >= "A" and character <= "Z"):
+            _touch_terminal_character(character)
+    touch_terminal_input.text = ""
+    _touch_text_guard = false
+
+
+func _touch_terminal_character(character: String) -> void:
+    if not (model.in_interior() and model.interior_model.terminal_open):
+        return
+    var c = model.computer_model
+    var events := {}
+    if c.state == ComputerModel.STATE_SELECT_KARD:
+        if character == "A":
+            events = c.select_kard(0)
+        elif character == "B":
+            events = c.select_kard(1)
+        else:
+            return
+    elif c.state == ComputerModel.STATE_SHOP_OFFER and character == "B":
+        events = c.buy_bonanza(model.supply_model)
+    elif c.state == ComputerModel.STATE_ENTER_KARD_CODE or c.state == ComputerModel.STATE_PASSWORD_ENTRY:
+        events = c.input_character(character)
+    else:
+        return
+    _handle_computer_events(events)
+
+
+func _touch_terminal_backspace() -> void:
+    if model.in_interior() and model.interior_model.terminal_open:
+        model.computer_model.backspace()
+
+
+func _touch_terminal_action() -> void:
+    if not (model.in_interior() and model.interior_model.terminal_open):
+        return
+    var events := model.computer_model.press_action(model.supply_model)
+    _handle_computer_events(events)
 
 
 func _build_environment() -> void:
@@ -1197,6 +1428,18 @@ func _update_visuals() -> void:
     for bolt_data in bolts:
         var bolt_node: MeshInstance3D = bolt_data["node"]
         bolt_node.visible = not in_endgame
+
+    if touch_root != null:
+        touch_root.visible = touch_controls_enabled
+    if touch_terminal_panel != null:
+        touch_terminal_panel.visible = (
+            touch_controls_enabled
+            and in_interior
+            and model.interior_model.terminal_open
+            and not model.kard_offer_pending()
+        )
+    if touch_kard_panel != null:
+        touch_kard_panel.visible = touch_controls_enabled and in_interior and model.kard_offer_pending()
 
     _update_endgame_hud()
 

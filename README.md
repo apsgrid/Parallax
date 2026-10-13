@@ -70,3 +70,10 @@ Current targets beyond the completed endgame milestone:
 7. Capture controlled original VICE parity cases for outdoor collision, scientist stun/KARD capture, terminal transactions and the final transporter/ending sequence.
 
 The objective is not to port opaque 6502 code directly. The objective is to recover the game's rules, data and state transitions accurately enough to reimplement them cleanly in a modern engine.
+
+
+## Builds and platforms
+
+The Godot reconstruction now has reproducible export presets for **Windows x86-64, Web and Android arm64**. Android/Web touchscreen play uses an on-screen control layer that feeds the same recovered simulation inputs as the desktop keyboard rather than a separate mobile ruleset.
+
+See `BUILDING.md` for regeneration, toolchain, packaging and validation instructions. Original source media and generated C64-derived runtime assets remain excluded from Git; local/private builds include the generated runtime data required to play.

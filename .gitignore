@@ -59,3 +59,5 @@ shield_indexed_trace.txt
 rea_help.txt
 rea_*_help.txt
 funes_git_milestones.txt
+Builds/
+Godot/*.import

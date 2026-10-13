@@ -47,7 +47,7 @@ Tracked obligations:
 
 ## Funes validation
 
-Current project memory source validates as 33 turns / 145 chunks / 0 rejected / 0 duplicate IDs before indexing.
+Current project memory source validates as 35 turns / 150 chunks / 0 rejected / 0 duplicate IDs before indexing.
 Recall checks correctly retrieved:
 - corrected Stage-5 range, byte count and SHA-256;
 - post-startup viewport/player coordinates and landing-ready conditions;
