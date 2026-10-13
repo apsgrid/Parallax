@@ -21,7 +21,7 @@ Therefore REA must not be cited as the decompiler/disassembler authority for Par
 ## REA historical source graph
 
 WSL `import-reference-source` successfully created a `HistoricalSourceGraph` for the Godot reconstruction.
-- root SHA-256: `ae0a5378ec881b769da32ae1ac78f4b2fd52e98f796782cdd3b317611872510c`
+- root SHA-256: `cad4ad853e5c4c2f4168252b516e75dd825681a0bc0dd19d475da13df4c5d719`
 - authority: `historical-reference`
 - includes hashed source, tests, project files, local generated world/graphics assets and documentation at audit time.
 
@@ -30,8 +30,8 @@ Generated graph JSON remains local under `rea_audit/`.
 ## REA reconstruction obligation ledger
 
 Authenticated review Evidence was generated with REA's own `createEvidence()` and `createEvidenceBundle()` implementation.
-- ledger ID: `rol_5f09944f354c06730418a55d0349faf1543aa2425a3457fa792b58d6b03f8d7a`
-- closure digest: `71702e9390250a0e8fcf969dda754f6dc405abdb6799c037ff313ec82a69e8f4`
+- ledger ID: `rol_4ca6156717508a01b218d0fbbe18dd5aa41e8a5bf7c29173d8562b56be3c3e0c`
+- closure digest: `fbddbb388a5e220052ac19904e25a750eab73b4b0e8b3d85630a358d77c2a8e5`
 - status: `unknown` (intentionally conservative)
 - required obligations: 6
 - verified: 0
@@ -41,17 +41,18 @@ Tracked obligations:
 1. shield behavior beyond toggle/status presentation;
 2. RETURN/datacard/password computer behavior;
 3. exact collision-tile taxonomy;
-4. special/alternate flight-ground paths beyond the verified normal round trip;
+4. the remaining special `$E9E5 == 6` flight-ground return case;
 5. byte-perfect ground fine-scroll collision alignment and `$C1-$C3 -> $E444` submode semantics;
 6. exact ship/shadow projection ownership.
 
 ## Funes validation
 
-Current project memory source validates as 23 turns / 70 chunks / 0 rejected / 0 duplicate IDs before indexing.
+Current project memory source validates as 25 turns / 79 chunks / 0 rejected / 0 duplicate IDs before indexing.
 Recall checks correctly retrieved:
 - corrected Stage-5 range, byte count and SHA-256;
 - post-startup viewport/player coordinates;
-- landing-ready conditions.
+- landing-ready conditions;
+- the current SHIP SUPPLY → STAY ABOARD / oxygen-gated EXIT SHIP transition, with superseded $E720 wording removed by clean memory rebuild.
 
 Funes is a retrieval layer, not original-game authority.
 
@@ -80,9 +81,12 @@ Verified core sequence:
 
 Godot reference tests now exercise the two-stage entry, ground state, rejected +8 offset, successful near-craft return, flag restoration and scroll realignment.
 
-Remaining open transition evidence is limited to:
-- the `$E9E5 == 6` special case that widens the negative X return bound to -27;
-- the alternate `$E720` exit/control path.
+The transition audit has since resolved the supply/disembark intermediate state:
+- `$E60D` presents SHIP SUPPLY after landing;
+- `$E720` is the verified STAY ABOARD path back to flight;
+- EXIT SHIP requires carried oxygen `$CF30 != 0` before outdoor ground control begins.
+
+Remaining open transition evidence is limited to the `$E9E5 == 6` special case that widens the negative X return bound to -27. See `SUPPLY_STATE.md`.
 
 ## Second-pass finding: on-foot controls
 

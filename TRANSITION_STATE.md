@@ -55,11 +55,20 @@ When `$E049 == 0`:
 - saves `$0707/$0708` into `$EDC8/$EDC7`;
 - performs the ground graphics/data setup.
 
-After initialization, `$E000` continues at `$E029` on every ground frame rather than repeating the setup.
+During the one-time setup, `$E064` also invokes the supply/disembark interface at `$E60D`. Outdoor walking does **not** begin immediately after landing.
 
-## Ground frame loop
+The recovered order is:
 
-The resident ground dispatcher executes the following stable chain from `$E029`:
+1. `$E000/$E064` ground initialization;
+2. SHIP SUPPLY inventory/disembark state;
+3. STAY ABOARD -> `$E720` -> flight, or oxygen-gated EXIT SHIP -> outdoor ground;
+4. only after EXIT SHIP does the ordinary `$E029` outdoor frame loop become the active player-control path.
+
+See `SUPPLY_STATE.md` for the recovered supply rules.
+
+## Outdoor ground frame loop
+
+After EXIT SHIP, the resident ground dispatcher executes the following stable chain from `$E029`:
 
 - optional `$EB25` when `$E9E5 == 6`;
 - `$E280`;
@@ -105,9 +114,11 @@ When the proximity gate succeeds:
 
 On the next main-loop tick `$F4 == 0`, so `$0E30` resumes the normal flight update chain.
 
-## Alternate exit path — `$E720` (OPEN exact purpose)
+## STAY ABOARD path — `$E720` (VERIFIED)
 
-`$E720` also:
+The supply screen's bottom row is STAY ABOARD / EXIT SHIP. With the LEFT side selected, STAY ABOARD reaches `$E720`.
+
+`$E720`:
 
 - clears `$E049`;
 - clears `$F4`;
@@ -117,7 +128,7 @@ On the next main-loop tick `$F4 == 0`, so `$0E30` resumes the normal flight upda
 - clears ground-specific `$0764/$0770` state;
 - calls `$E7A6` and jumps through `$EC67`.
 
-It is reached from the ground-side control flow around `$E67B`, not from the ordinary `$EB5B` return-to-ship path. Its exact player-facing purpose remains open and is tracked separately rather than being folded into the normal takeoff behavior.
+It is reached from the supply control flow around `$E67B` when selection 8 is on the LEFT side. Its player-facing purpose is therefore **STAY ABOARD**. It is separate from the later outdoor `$EB5B` return-to-ship path.
 
 ## Godot reference implementation
 
@@ -127,10 +138,12 @@ It is reached from the ground-side control flow around `$E67B`, not from the ord
 - the next `step()` performs the `$E000`-equivalent ground initialization;
 - `flight_raster_mode` models `$F3`;
 - `ground_initialized` models `$E049`;
+- `SupplyModel` models the recovered `$E60D` SHIP SUPPLY state, including STAY ABOARD and oxygen-gated EXIT SHIP;
+- `GroundModel` is enabled only after EXIT SHIP succeeds;
 - `GroundModel.player_offset` models intuitive on-foot displacement from the landing craft while the original scroll coordinate moves inversely;
-- FIRE within the verified normal -7..+7 return range cancels the walking displacement and restores the exact landing world position before flight resumes.
+- FIRE within the verified normal -7..+7 outdoor return range cancels the walking displacement and restores the exact landing world position before flight resumes.
 
-Ground walking is now implemented in the deterministic `GroundModel` from the recovered `$E516/$E15B/$E216/$E280` rules. The modern scene exposes the recovered sprite animation and a provisional expanded-world collision bridge; byte-perfect C64 fine-scroll collision alignment remains an explicit open item.
+The modern scene now exposes the recovered supply/disembark state and the recovered ground sprite animation. Its expanded-world outdoor collision bridge remains provisional; byte-perfect C64 fine-scroll collision alignment remains an explicit open item.
 
 ## Current confidence
 
@@ -139,5 +152,6 @@ Ground walking is now implemented in the deterministic `GroundModel` from the re
 - `$E049` one-time initialization behavior: **VERIFIED**.
 - `$F3` flight/ground mode behavior: **VERIFIED**.
 - `$EB5B` normal return-to-ship proximity gate and flag restoration: **VERIFIED**.
+- SHIP SUPPLY intermediate state and oxygen-gated EXIT SHIP: **VERIFIED**.
+- `$E720` STAY ABOARD path: **VERIFIED**.
 - Meaning of `$E9E5 == 6` widened X range: **OPEN**.
-- Exact purpose of alternate `$E720` exit path: **OPEN**.

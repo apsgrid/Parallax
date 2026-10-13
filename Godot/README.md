@@ -17,7 +17,8 @@ Current prototype:
 - laser bolts
 - recovered two-stage flight → ground transition ($F4 request, next-tick $E000 entry)
 - recovered normal ground → flight return gate and state restoration
-- deterministic land → ground → walk → return-to-ship round trip
+- deterministic land → SHIP SUPPLY → EXIT SHIP → walk → return-to-ship round trip
+- recovered SHIP SUPPLY inventory transfer, scientist/drug behavior, Standard Kit, STAY ABOARD and oxygen-gated EXIT SHIP
 - recovered on-foot joystick priority, one-pixel movement and inverse scrolling
 - exact 17-code on-foot passable-character whitelist
 - recovered on-foot walk animation using the original C64 sprite frames $50-$5B
@@ -38,7 +39,7 @@ Verified initial geometry:
 Controls:
 - In flight: Left/Right or A/D turn; Down/S climbs; Up/W dives
 - On foot: Arrows/WASD use the recovered RIGHT → LEFT → DOWN → UP priority and one-pixel movement
-- Z: fire; when landing-ready and stopped, commit landing; on foot at the craft, return to flight
+- Z: fire; when landing-ready and stopped, commit landing; in SHIP SUPPLY, select on release; on foot at the craft, return to flight
 - Space: landing gear
 - F7: shield UI state
 - Tab: switch between the two recovered velocity table sets

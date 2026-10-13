@@ -2,6 +2,7 @@ extends SceneTree
 
 const FlightModel = preload("res://scripts/flight_model.gd")
 const GroundModel = preload("res://scripts/ground_model.gd")
+const SupplyModel = preload("res://scripts/supply_model.gd")
 
 var failures := 0
 
@@ -13,6 +14,7 @@ func _initialize() -> void:
     _test_velocity_convergence()
     _test_landing_regime()
     _test_ground_round_trip()
+    _test_supply_stay_aboard()
     _test_laser_event()
 
     if failures == 0:
@@ -92,6 +94,7 @@ func _test_landing_regime() -> void:
 
     events = m.step(0, false, 9)
     _check(events["entered_ground"] and m.landed, "next tick enters the recovered $E000 ground dispatcher")
+    _check(events["entered_supply"] and m.in_supply_menu(), "$E000 entry opens the recovered SHIP SUPPLY state")
     _check(m.ground_initialized, "$E049-equivalent ground initialization guard is set")
     _check(not m.flight_raster_mode, "$E000 clears the $F3-equivalent flight raster mode")
 
@@ -106,6 +109,14 @@ func _test_ground_round_trip() -> void:
     m.step(0, false, 9)
     m.step(0, true, 9)
     m.step(0, false, 9)
+
+    _check(m.in_supply_menu(), "landing enters supply menu before outdoor ground mode")
+    m.supply_model.selection = SupplyModel.SEL_EXIT_ROW
+    m.supply_model.side_right = true
+    m.supply_model.carried_oxygen = 1
+    m.step(0, false, 9, 0, -1, true)
+    var exit_events := m.step(0, false, 9, 0, -1, false)
+    _check(exit_events["exited_ship"] and m.on_foot(), "oxygen-gated EXIT SHIP enters outdoor ground mode")
 
     for i in range(8):
         m.step(GroundModel.RIGHT, false, 9)
@@ -125,6 +136,25 @@ func _test_ground_round_trip() -> void:
     _check(not m.ground_transition_flag and m.flight_raster_mode, "return clears $F4-equivalent state and restores $F3-equivalent flight mode")
     _check(not m.ground_initialized, "return clears the $E049-equivalent initialization guard")
     _check(m.world_x == 100 and m.world_y == 200, "return path realigns exactly to the landing world position")
+
+
+func _test_supply_stay_aboard() -> void:
+    var m := FlightModel.new()
+    m.flight_height = FlightModel.LANDING_HEIGHT
+    m.landing_gear = true
+
+    m.step(0, false, 9)
+    m.step(0, true, 9)
+    m.step(0, false, 9)
+    _check(m.in_supply_menu(), "STAY ABOARD test reaches SHIP SUPPLY")
+
+    m.supply_model.selection = SupplyModel.SEL_EXIT_ROW
+    m.supply_model.side_right = false
+    m.step(0, false, 9, 0, -1, true)
+    var events := m.step(0, false, 9, 0, -1, false)
+    _check(events["supply_stay_aboard"], "left row-8 action reports STAY ABOARD")
+    _check(events["exited_ground"] and not m.landed, "STAY ABOARD follows recovered $E720 return-to-flight path")
+    _check(not m.ground_transition_flag and m.flight_raster_mode, "STAY ABOARD clears $F4 and restores $F3")
 
 
 func _test_laser_event() -> void:

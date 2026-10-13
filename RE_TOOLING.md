@@ -21,6 +21,7 @@ REA 6.4.0 currently does not natively analyze the Parallax 6502 D64/PRG. Its rol
 ## Memory and structural search
 
 - Funes must be refreshed after authoritative RE documents change materially.
+- The Parallax Funes store is a **current authoritative-state index**, not a revision archive. Refreshes rebuild the project memory from the current generated transcript so superseded claims cannot compete with corrected findings.
 - Funes recall is context retrieval, not binary proof; claims still require address/data-flow/runtime evidence.
 - `cs` is the default repository-wide structural search tool. Prefer it over ad-hoc text scans when searching source/docs/scripts.
 - Record stale assumptions discovered by `cs` as code/doc fixes, not merely audit notes.

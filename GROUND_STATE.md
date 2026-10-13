@@ -1,10 +1,10 @@
 # Parallax Ground / On-Foot State
 
-This document records the verified resident on-foot control loop reached through the flight-to-ground transition.
+This document records the verified resident outdoor on-foot control loop reached after the flight-to-ground transition **and the SHIP SUPPLY / EXIT SHIP state** documented in `SUPPLY_STATE.md`.
 
 ## Ground frame chain
 
-After the one-time `$E000/$E064` initialization, the outdoor ground dispatcher runs from `$E029`:
+After `$E000/$E064` initialization and a successful oxygen-gated EXIT SHIP choice, the outdoor ground dispatcher runs from `$E029`:
 
 - optional `$EB25` when `$E9E5 == 6`;
 - `$E280` — four-direction collision sampling;

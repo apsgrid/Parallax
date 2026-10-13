@@ -363,6 +363,7 @@ The normal round trip is now reconstructed in detail; see `TRANSITION_STATE.md` 
 
 Open edge cases:
 - `$E9E5 == 6` widens the negative X return range to -27; exact purpose remains unknown.
-- `$E720` is an alternate ground-exit/control path; exact player-facing trigger remains unknown.
 
-The Godot reference model now preserves this two-stage entry and normal return sequence and tests the full round trip.
+The formerly open `$E720` path is now verified as the **STAY ABOARD** action from the recovered SHIP SUPPLY screen. EXIT SHIP is separately oxygen-gated before outdoor on-foot control begins. See `SUPPLY_STATE.md`.
+
+The Godot reference model now preserves the landing → supply/disembark → outdoor ground → return sequence and tests both STAY ABOARD and EXIT SHIP paths.

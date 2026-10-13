@@ -37,12 +37,12 @@ const findings = [
   },
   {
     id: "transition.flight-ground",
-    title: "Resolve special/alternate flight-ground transition paths beyond the verified normal round trip",
+    title: "Resolve the remaining special $E9E5==6 flight-ground return case",
     family: "mode-transition",
-    location: "$10FB/$F4 -> $E000; normal return $EB5B; alternate exit $E720",
-    finding: "The normal transition is reconstructed and implemented: landing FIRE sets $F4, the next tick enters $E000, $E049 gates one-time ground init, $F3 is cleared in ground mode, and $EB5B returns to flight when the player is within the stored craft proximity gate. Remaining uncertainty is limited to the $E9E5==6 widened X return range and alternate $E720 exit path.",
-    sources: ["FLIGHT_STATE.md", "TRANSITION_STATE.md", "Godot/scripts/flight_model.gd", "Godot/tests/test_flight_model.gd", "trace_ground_transition.py", "trace_ground_return.py"],
-    next: ["Determine the player-facing meaning of the $E9E5==6 special return range.", "Trace the $E720 alternate exit path to its triggering interaction/state.", "Capture one controlled original VICE round trip when the ground controller is reconstructed."]
+    location: "$10FB/$F4 -> $E000 -> $E60D supply; $E720 STAY ABOARD; EXIT SHIP -> outdoor $EB5B return",
+    finding: "The normal transition is reconstructed and implemented through the recovered SHIP SUPPLY state. $E720 is now verified as STAY ABOARD; EXIT SHIP is oxygen-gated and enters outdoor ground mode; $EB5B performs the later near-craft return. Remaining transition uncertainty is the $E9E5==6 special case that widens the negative X return bound.",
+    sources: ["FLIGHT_STATE.md", "TRANSITION_STATE.md", "SUPPLY_STATE.md", "Godot/scripts/flight_model.gd", "Godot/scripts/supply_model.gd", "Godot/tests/test_flight_model.gd", "Godot/tests/test_supply_model.gd", "trace_supply_state.py", "trace_ground_transition.py", "trace_ground_return.py"],
+    next: ["Determine the player-facing meaning and trigger of the $E9E5==6 special return range.", "Capture one controlled original VICE landing -> supply -> exit -> return round trip."]
   },
   {
     id: "ground.fine-scroll-collision",

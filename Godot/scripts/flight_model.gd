@@ -2,6 +2,11 @@ class_name ParallaxFlightModel
 extends RefCounted
 
 const GroundModel = preload("res://scripts/ground_model.gd")
+const SupplyModel = preload("res://scripts/supply_model.gd")
+
+const GROUND_PHASE_NONE := 0
+const GROUND_PHASE_SUPPLY := 1
+const GROUND_PHASE_OUTSIDE := 2
 
 const HEIGHT_MIN := 0x03
 const HEIGHT_MAX := 0x28
@@ -51,7 +56,9 @@ var ground_initialized := false
 # $EB5B accepts the normal return-to-ship path only inside -7..+7.
 var ground_player_offset := Vector2i.ZERO
 var ground_entry_world := Vector2i.ZERO
+var ground_phase := GROUND_PHASE_NONE
 var ground_model := GroundModel.new()
+var supply_model := SupplyModel.new()
 
 var _input_counters := [0, 0, 0, 0]
 
@@ -76,7 +83,9 @@ func reset() -> void:
     ground_initialized = false
     ground_player_offset = Vector2i.ZERO
     ground_entry_world = Vector2i.ZERO
+    ground_phase = GROUND_PHASE_NONE
     ground_model.reset()
+    supply_model.reset_all()
     _input_counters = [0, 0, 0, 0]
 
 
@@ -93,7 +102,8 @@ func step(
     fire_pressed: bool,
     safe_cells: int,
     ground_blocked_bits: int = 0,
-    ground_right_contact_code: int = -1
+    ground_right_contact_code: int = -1,
+    fire_down: bool = false
 ) -> Dictionary:
     var events := {
         "laser": false,
@@ -104,6 +114,11 @@ func step(
         "ground_move_delta": Vector2i.ZERO,
         "ground_scroll_delta": Vector2i.ZERO,
         "ground_special_interaction": false,
+        "entered_supply": false,
+        "exited_ship": false,
+        "supply_changed": false,
+        "supply_stay_aboard": false,
+        "supply_message_code": SupplyModel.MSG_NONE,
     }
 
     # The flight dispatcher tests $F4 before running any flight update.
@@ -113,6 +128,28 @@ func step(
         if not ground_initialized:
             _enter_ground_mode()
             events["entered_ground"] = true
+            events["entered_supply"] = true
+            return events
+
+        if ground_phase == GROUND_PHASE_SUPPLY:
+            var supply_bits := input_bits
+            if fire_down:
+                supply_bits |= SupplyModel.FIRE
+            var supply_events: Dictionary = supply_model.step(supply_bits)
+            events["supply_changed"] = supply_events["changed"]
+            events["supply_message_code"] = supply_events["message_code"]
+
+            if supply_events["stay_aboard"]:
+                events["supply_stay_aboard"] = true
+                _exit_ground_mode()
+                events["exited_ground"] = true
+                return events
+
+            if supply_events["exit_ship"]:
+                ground_phase = GROUND_PHASE_OUTSIDE
+                ground_model.reset()
+                ground_player_offset = Vector2i.ZERO
+                events["exited_ship"] = true
             return events
 
         var ground_events: Dictionary = ground_model.step(
@@ -187,10 +224,20 @@ func _enter_ground_mode() -> void:
     flight_raster_mode = false
     landed = true
     ground_entry_world = Vector2i(world_x, world_y)
+    ground_phase = GROUND_PHASE_SUPPLY
+    supply_model.begin_menu()
     ground_model.reset()
     ground_player_offset = Vector2i.ZERO
     vx_hi = 0
     vy_hi = 0
+
+
+func in_supply_menu() -> bool:
+    return ground_transition_flag and ground_initialized and ground_phase == GROUND_PHASE_SUPPLY
+
+
+func on_foot() -> bool:
+    return ground_transition_flag and ground_initialized and ground_phase == GROUND_PHASE_OUTSIDE
 
 
 func _can_return_to_ship() -> bool:
@@ -214,6 +261,7 @@ func _exit_ground_mode() -> void:
     ground_transition_flag = false
     ground_initialized = false
     flight_raster_mode = true
+    ground_phase = GROUND_PHASE_NONE
     landed = false
     ground_player_offset = Vector2i.ZERO
 

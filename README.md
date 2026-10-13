@@ -53,17 +53,17 @@ The original flight controls are now matched to code: RIGHT/LEFT rotate through 
 
 ## Next reverse-engineering targets
 
-Completed core milestones now include the heading tables, 480×480 world format, flight charset/palette, deterministic flight reference model, and the normal flight ↔ ground round trip.
+Completed core milestones now include the heading tables, 480×480 world format, flight charset/palette, deterministic flight reference model, the normal flight ↔ ground round trip, on-foot controls/sprites, and the recovered SHIP SUPPLY → STAY ABOARD / EXIT SHIP state.
 
 Current targets:
 
-1. Verify byte-perfect C64 fine-scroll ↔ expanded-world alignment for on-foot collision timing.
+1. Verify byte-perfect C64 fine-scroll ↔ ground-screen collision alignment after EXIT SHIP.
 2. Resolve the `$C1-$C3 -> $E444` secondary ground/interior submode and its exit condition.
-3. Resolve the special `$E9E5 == 6` return range and alternate `$E720` exit path.
+3. Resolve the special `$E9E5 == 6` return range.
 4. Assign exact semantics to the remaining flight collision tile classes.
 5. Identify sprite ownership for ship, shadow, projectiles and landing gear.
 6. Finish laser/enemy damage behavior and test whether shields have any gameplay effect.
-7. Decode RETURN/datacard/password and scientist/computer interaction state.
-8. Reconstruct the first complete fly → land → on-foot → interact → return → takeoff vertical slice.
+7. Decode RETURN/datacard/password and the remaining scientist/computer interaction state.
+8. Reconstruct the first complete fly → land → supply/disembark → on-foot → interact → return → takeoff vertical slice.
 
 The objective is not to port opaque 6502 code directly. The objective is to recover the game's rules, data and state transitions accurately enough to reimplement them cleanly in a modern engine.

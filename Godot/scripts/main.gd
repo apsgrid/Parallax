@@ -2,6 +2,7 @@ extends Node3D
 
 const FlightModel = preload("res://scripts/flight_model.gd")
 const GroundModel = preload("res://scripts/ground_model.gd")
+const SupplyModel = preload("res://scripts/supply_model.gd")
 
 const TILE_SIZE := 2.0
 const SIM_UNITS_PER_TILE := 8.0
@@ -28,6 +29,8 @@ var ground_sprite_textures := {}
 var camera: Camera3D
 var hud: Label
 var hud_panel: PanelContainer
+var supply_panel: PanelContainer
+var supply_label: Label
 var gear_nodes := []
 var footprint_markers := []
 var bolts := []
@@ -62,6 +65,7 @@ func _ready() -> void:
     _build_ground_player()
     _build_camera()
     _build_hud()
+    _build_supply_hud()
     _update_visuals()
     _update_hud()
 
@@ -125,7 +129,7 @@ func _physics_process(_delta: float) -> void:
 
     var ground_blocked_bits := 0
     var ground_right_contact_code := -1
-    if model.ground_transition_flag and model.ground_initialized:
+    if model.on_foot():
         var collision := _ground_collision_bridge()
         ground_blocked_bits = int(collision["blocked_bits"])
         ground_right_contact_code = int(collision["right_code"])
@@ -136,7 +140,8 @@ func _physics_process(_delta: float) -> void:
         fire_pressed,
         safe_cells,
         ground_blocked_bits,
-        ground_right_contact_code
+        ground_right_contact_code,
+        fire_now
     )
 
     if events["laser"]:
@@ -145,9 +150,18 @@ func _physics_process(_delta: float) -> void:
     if events["ground_transition_requested"]:
         status_message = "Landing committed — original $F4 transition flag set"
     if events["entered_ground"]:
-        status_message = "GROUND MODE — original $E000 initialization complete"
+        status_message = "SHIP SUPPLY — recovered landing inventory/disembark screen"
+    if events["supply_changed"]:
+        status_message = "SHIP SUPPLY — inventory updated"
+    if int(events["supply_message_code"]) != SupplyModel.MSG_NONE:
+        status_message = SupplyModel.message_text(int(events["supply_message_code"]))
+    if events["exited_ship"]:
+        status_message = "EXIT SHIP — outdoor ground mode active"
     if events["exited_ground"]:
-        status_message = "Returned to flight — $F4 cleared / $F3 restored"
+        if events["supply_stay_aboard"]:
+            status_message = "STAY ABOARD — returned to flight"
+        else:
+            status_message = "Returned to flight — $F4 cleared / $F3 restored"
     if events["ground_moved"]:
         status_message = "ON FOOT — recovered one-pixel movement"
     if events["ground_special_interaction"]:
@@ -320,6 +334,38 @@ func _build_hud() -> void:
     hud_panel.add_child(hud)
 
 
+func _build_supply_hud() -> void:
+    var canvas := CanvasLayer.new()
+    canvas.layer = 5
+    add_child(canvas)
+
+    supply_panel = PanelContainer.new()
+    supply_panel.position = Vector2(360, 115)
+    supply_panel.custom_minimum_size = Vector2(560, 460)
+
+    var style := StyleBoxFlat.new()
+    style.bg_color = Color(0.01, 0.012, 0.018, 0.94)
+    style.border_width_left = 2
+    style.border_width_top = 2
+    style.border_width_right = 2
+    style.border_width_bottom = 2
+    style.border_color = Color(0.62, 0.72, 0.78, 0.95)
+    style.corner_radius_top_left = 6
+    style.corner_radius_top_right = 6
+    style.corner_radius_bottom_left = 6
+    style.corner_radius_bottom_right = 6
+    supply_panel.add_theme_stylebox_override("panel", style)
+    supply_panel.visible = false
+    canvas.add_child(supply_panel)
+
+    supply_label = Label.new()
+    supply_label.custom_minimum_size = Vector2(530, 430)
+    supply_label.add_theme_font_size_override("font_size", 22)
+    supply_label.add_theme_color_override("font_color", Color(0.94, 0.94, 0.90))
+    supply_label.add_theme_constant_override("line_spacing", 6)
+    supply_panel.add_child(supply_label)
+
+
 func _sample_footprint() -> int:
     # $C1FD adds velocity to fine scroll, while wrap normalization moves
     # the world tile index in the opposite direction.
@@ -379,7 +425,7 @@ func _tile_is_visually_blank(code: int) -> bool:
 
 
 func _current_world_tile() -> Vector2i:
-    if model.landed:
+    if model.on_foot():
         return _ground_player_world_tile()
     return Vector2i(
         PLAYER_START_TILE.x + floori(float(-model.world_x) / SIM_UNITS_PER_TILE),
@@ -535,8 +581,8 @@ func _update_visuals() -> void:
     for leg in gear_nodes:
         leg.visible = model.landing_gear
 
-    ground_player.visible = model.landed
-    if model.landed:
+    ground_player.visible = model.on_foot()
+    if model.on_foot():
         ground_player.position = ship.position + Vector3(
             float(model.ground_model.player_offset.x) * WORLD_SCALE,
             0.65,
@@ -546,7 +592,12 @@ func _update_visuals() -> void:
         if ground_sprite_textures.has(frame):
             ground_player.texture = ground_sprite_textures[frame]
 
-    var focus := ground_player.position if model.landed else ship.position
+    if supply_panel != null:
+        supply_panel.visible = model.in_supply_menu()
+        if model.in_supply_menu():
+            _update_supply_hud()
+
+    var focus := ground_player.position if model.on_foot() else ship.position
     camera.position = focus + Vector3(8.0, 34.0, 8.0)
     camera.look_at(focus, Vector3.UP)
 
@@ -588,6 +639,42 @@ func _update_bolts() -> void:
             bolts[i] = bolt_data
 
 
+func _update_supply_hud() -> void:
+    var s = model.supply_model
+    var left_mark := "<" if not s.side_right else " "
+    var right_mark := ">" if s.side_right else " "
+    var rows := [
+        ["OXYGEN", s.ship_oxygen, s.carried_oxygen],
+        ["STUN-GUNS", s.ship_stun_guns, s.carried_stun_guns],
+        ["AMMUNITION", s.ship_ammunition, s.carried_ammunition],
+        ["DRUGS", s.drugs, 0],
+        ["SCIENTISTS", s.ship_scientists, s.carried_scientists],
+    ]
+
+    var text_value := "              SHIP SUPPLY                 TAKE AWAY\n\n"
+    for i in range(rows.size()):
+        var sel := i + 1
+        var marker_left := left_mark if s.selection == sel else " "
+        var marker_right := right_mark if s.selection == sel else " "
+        text_value += "%s %-12s %3d        %s %-12s %3d\n" % [
+            marker_left, rows[i][0], rows[i][1],
+            marker_right, rows[i][0], rows[i][2]
+        ]
+
+    text_value += "\n"
+    text_value += ("%s STANDARD KIT\n" % (left_mark if s.selection == SupplyModel.SEL_STANDARD_KIT else " "))
+    text_value += "\n"
+    text_value += "%s STAY ABOARD                 EXIT SHIP %s\n" % [
+        left_mark if s.selection == SupplyModel.SEL_EXIT_ROW else " ",
+        right_mark if s.selection == SupplyModel.SEL_EXIT_ROW else " "
+    ]
+    text_value += "\nArrows/WASD move cursor • Z selects on release\n"
+    if s.last_message_code != SupplyModel.MSG_NONE:
+        text_value += "\n" + SupplyModel.message_text(s.last_message_code)
+
+    supply_label.text = text_value
+
+
 func _update_hud() -> void:
     var target := model.target_velocity()
     var heading_degrees := float(model.heading) * 22.5
@@ -610,8 +697,11 @@ func _update_hud() -> void:
         + "$F4 ground flag  %s\n" % ("SET" if model.ground_transition_flag else "clear")
         + "$F3 flight mode  %s\n" % ("1" if model.flight_raster_mode else "0")
         + "$E049 init guard %s\n" % ("SET" if model.ground_initialized else "clear")
-        + "State            %s\n\n" % ("GROUND" if model.landed else ("TRANSITION" if model.ground_transition_flag else "FLIGHT"))
-        + "Arrows / WASD  turn + climb/dive (flight)\n"
+        + "State            %s\n\n" % (
+            "SUPPLY" if model.in_supply_menu()
+            else ("GROUND" if model.on_foot() else ("TRANSITION" if model.ground_transition_flag else "FLIGHT"))
+        )
+        + "Arrows / WASD  flight / supply cursor / on-foot movement\n"
         + "Z              fire / land / return to ship\n"
         + "SPACE          landing gear\n"
         + "F7             shields (UI state for now)\n"
