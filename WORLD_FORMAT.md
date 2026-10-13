@@ -81,3 +81,24 @@ Therefore the world-coordinate relationship is:
 - negative C64 scroll accumulation -> positive expanded-world displacement.
 
 The Godot renderer now preserves `world_x/world_y` as C64 scroll accumulators but converts them to modern world position with the opposite sign. Ground player displacement is then added intuitively on top of the landed world position.
+
+## Ground collision screen-grid mapping
+
+The outdoor ground controller does not use an abstract neighboring-world-tile lookup. Routine `$E280` samples the active C64 screen buffer at fixed cells.
+
+Correct zero-page pointer interpretation:
+- `$8B = $7B` is the low byte;
+- `$8C = $79` (or `$7D` when `$0701 != 0`) is the high byte;
+- base pointer = `$797B` or `$7D7B`.
+
+Relative to `$7800/$7C00`, the sampled cells are:
+- UP (19,9)
+- LEFT (18,10)
+- RIGHT (20,10)
+- DOWN (19,11)
+
+The player collision centre is therefore (19,10).
+
+Because both flight and ground use the same `$0703-$0708` scroll hierarchy, the modern expanded-world bridge combines the saved landing scroll with ground inverse-scroll pixels before converting to tile coordinates. For signed aggregate scroll `d`, expanded-world tile-origin shift is `-floor(d/8)`.
+
+This preserves C64 collision changes at the original character-boundary frames, including negative fine-scroll wrap.

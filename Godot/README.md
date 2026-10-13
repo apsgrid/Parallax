@@ -22,7 +22,7 @@ Current prototype:
 - recovered on-foot joystick priority, one-pixel movement and inverse scrolling
 - exact 17-code on-foot passable-character whitelist
 - recovered on-foot walk animation using the original C64 sprite frames $50-$5B
-- provisional expanded-world collision bridge (exact C64 fine-scroll alignment still pending)
+- recovered $E280 ground collision screen cells and C64 fine-scroll/tile/macro alignment mapped exactly onto the expanded world
 - complete recovered 480×480 world available to the renderer
 - streamed world window that follows the craft
 - original flight charset decoded from $4000

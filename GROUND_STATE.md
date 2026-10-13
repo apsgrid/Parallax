@@ -71,11 +71,36 @@ Blocked flags:
 
 Every other code blocks normal movement.
 
-### Godot collision bridge
+### Exact screen-cell / expanded-world collision bridge
 
-`GroundModel` uses the exact recovered whitelist and blocked-bit semantics. The current scene bridge maps the modern world coordinate to the expanded 480×480 tile map and tests the neighboring cells.
+The apparent ambiguity in `$E280` was resolved by correcting the zero-page pointer byte order.
 
-This bridge is **PROVISIONAL**, not byte-perfect original authority. The exact C64 fine-scroll/screen-buffer mapping still needs to be expressed directly in the reference state before claiming identical collision timing at character boundaries.
+`$E280` writes:
+- high byte `$79` to `$8C`;
+- low byte `$7B` to `$8B`.
+
+Therefore the base indirect pointer is **`$797B`**, not `$7B79`. When `$0701 != 0`, `$E288-$E293` increments the high byte four times, producing `$7D7B` for the alternate screen buffer.
+
+Relative to active screen base `$7800/$7C00`, `$797B/$7D7B` is screen row 9, column 19. Applying the four recovered Y offsets gives the exact sampled cells:
+
+- UP `+$00` -> **(19, 9)**
+- LEFT `+$27` -> **(18, 10)**
+- RIGHT `+$29` -> **(20, 10)**
+- DOWN `+$50` -> **(19, 11)**
+
+The implied player collision centre is screen cell **(19, 10)**.
+
+Ground movement writes inverse one-pixel deltas to `$0709/$070B`. The shared scroll routine `$C1FD` adds those signed values to fine scroll `$0703/$0704`; `$C00E/$C03F` normalize 8-pixel crossings into tile offsets `$0705/$0706`; and `$C070/$C091` normalize five-tile crossings into macro coordinates `$0707/$0708`.
+
+Consequently, for aggregate signed scroll displacement `d` in original pixels, the expanded-world screen-origin shift is exactly:
+
+`-floor(d / 8)`
+
+This includes the asymmetric negative case: a displacement of `-1` from fine scroll zero wraps immediately to fine 7 and increments the expanded-world tile origin by one.
+
+The Godot bridge now combines the flight landing scroll accumulator with the inverse ground-walking scroll **before** applying this normalization, then samples the four exact recovered screen cells against the expanded 480×480 tile data. Character-boundary collision timing therefore follows the original C64 scroll grid rather than a modern neighbor-tile approximation.
+
+`trace_ground_collision_alignment.py` asserts the pointer seed, screen-bank selection, four sample cells, passable table, velocity-add path and fine/tile normalization signatures directly against the canonical playable RAM.
 
 ## Movement animation — `$E046/$E047/$E048/$E05E` (VERIFIED)
 
@@ -155,8 +180,9 @@ This is a distinct ground/interior submode, not a generic FIRE interaction. Exac
 `Godot/scripts/main.gd` additionally:
 - displays the recovered ground sprite frames;
 - follows the ground player with the camera;
-- supplies the provisional expanded-world collision bridge;
-- keeps the original collision model separate from that bridge so the bridge can be replaced when fine-scroll mapping is completed.
+- combines the landing scroll and inverse ground-scroll accumulators at original pixel resolution;
+- maps the resulting C64 screen origin to the expanded 480×480 world;
+- samples the exact `$E280` collision cells at (19,9), (18,10), (20,10), and (19,11).
 
 ## Current confidence
 
@@ -166,6 +192,8 @@ This is a distinct ground/interior submode, not a generic FIRE interaction. Exac
 - walk animation cadence/frame codes: **VERIFIED**
 - inverse scroll behavior: **VERIFIED**
 - fixed anchor vs mutable ground coordinate roles: **VERIFIED**
+- `$E280` active-screen pointer and exact four sampled screen cells: **VERIFIED**
+- C64 fine-scroll/tile/macro normalization ↔ expanded-world collision alignment: **VERIFIED structure**
 - `$C1-$C3 -> $E444` secondary-submode branch: **VERIFIED structure**
 - exact semantic names for `$C1/$C2/$C3`: **OPEN**
-- exact modern-world ↔ C64 fine-scroll collision alignment: **OPEN**
+- controlled VICE parity capture for outdoor collision timing: **OPEN**

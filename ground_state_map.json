@@ -137,9 +137,22 @@
     },
     "phase_period_accepted_moves": 4
   },
+  "collision_screen_grid": {
+    "active_pointer_screen0": "0x797B",
+    "active_pointer_screen1": "0x7D7B",
+    "player_center": [19, 10],
+    "samples": {
+      "up": [19, 9],
+      "left": [18, 10],
+      "right": [20, 10],
+      "down": [19, 11]
+    },
+    "expanded_world_origin_shift": "-floor(total_scroll_pixels / 8)",
+    "confidence": "verified-structure"
+  },
   "open": [
     "Exact semantic names for C1/C2/C3 special right-contact codes",
     "Exact purpose/exit semantics of the E444 secondary ground submode",
-    "Byte-perfect modern world to C64 fine-scroll collision bridge"
+    "Controlled VICE parity capture for outdoor collision timing"
   ]
 }

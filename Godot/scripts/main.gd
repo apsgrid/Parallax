@@ -433,34 +433,37 @@ func _current_world_tile() -> Vector2i:
     )
 
 
+func _ground_screen_origin_tile() -> Vector2i:
+    # Flight and ground use the same $0703-$0708 scroll state. At landing,
+    # ground_entry_world is the accumulated flight scroll in original pixel
+    # units. Accepted ground movement adds the inverse $E250 scroll delta.
+    var total_scroll := model.ground_entry_world + model.ground_model.scroll_offset
+    return GroundModel.screen_origin_tile(INITIAL_VIEW_ORIGIN_TILE, total_scroll)
+
+
 func _ground_player_world_tile() -> Vector2i:
-    var px := -model.ground_entry_world.x + model.ground_model.player_offset.x
-    var py := -model.ground_entry_world.y + model.ground_model.player_offset.y
-    return Vector2i(
-        PLAYER_START_TILE.x + floori(float(px) / SIM_UNITS_PER_TILE),
-        PLAYER_START_TILE.y + floori(float(py) / SIM_UNITS_PER_TILE)
-    )
+    return _ground_screen_origin_tile() + GroundModel.PLAYER_SCREEN_CELL
 
 
 func _ground_collision_bridge() -> Dictionary:
-    # The recovered collision classifier and passable-code set are exact.
-    # This bridge maps the modern world coordinate back to the expanded
-    # world grid. Fine-scroll equivalence to the C64 screen sampler is still
-    # a verification target, so keep this boundary explicit.
-    var center := _ground_player_world_tile()
-    var directions := [
-        [GroundModel.RIGHT, Vector2i(1, 0)],
-        [GroundModel.LEFT, Vector2i(-1, 0)],
-        [GroundModel.DOWN, Vector2i(0, 1)],
-        [GroundModel.UP, Vector2i(0, -1)],
+    # Exact $E280 geometry. Its zero-page pointer bytes are low=$7B,
+    # high=$79/$7D, i.e. $797B/$7D7B — not $7B79/$7F79.
+    # Relative to $7800/$7C00 the four sampled screen cells are:
+    # UP (19,9), LEFT (18,10), RIGHT (20,10), DOWN (19,11).
+    var origin := _ground_screen_origin_tile()
+    var samples := [
+        [GroundModel.RIGHT, GroundModel.COLLISION_RIGHT_CELL],
+        [GroundModel.LEFT, GroundModel.COLLISION_LEFT_CELL],
+        [GroundModel.DOWN, GroundModel.COLLISION_DOWN_CELL],
+        [GroundModel.UP, GroundModel.COLLISION_UP_CELL],
     ]
 
     var blocked_bits := 0
     var right_code := -1
-    for entry in directions:
+    for entry in samples:
         var bit: int = entry[0]
-        var delta: Vector2i = entry[1]
-        var code := _tile_code(center.x + delta.x, center.y + delta.y)
+        var cell: Vector2i = entry[1]
+        var code := _tile_code(origin.x + cell.x, origin.y + cell.y)
         if bit == GroundModel.RIGHT:
             right_code = code
         if not GroundModel.is_passable_tile(code):

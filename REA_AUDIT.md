@@ -21,7 +21,7 @@ Therefore REA must not be cited as the decompiler/disassembler authority for Par
 ## REA historical source graph
 
 WSL `import-reference-source` successfully created a `HistoricalSourceGraph` for the Godot reconstruction.
-- root SHA-256: `cad4ad853e5c4c2f4168252b516e75dd825681a0bc0dd19d475da13df4c5d719`
+- root SHA-256: `66641177303d2badf34cca9aa0816336ac70e40e4a84b73373dd4e031f431adc`
 - authority: `historical-reference`
 - includes hashed source, tests, project files, local generated world/graphics assets and documentation at audit time.
 
@@ -30,8 +30,8 @@ Generated graph JSON remains local under `rea_audit/`.
 ## REA reconstruction obligation ledger
 
 Authenticated review Evidence was generated with REA's own `createEvidence()` and `createEvidenceBundle()` implementation.
-- ledger ID: `rol_4ca6156717508a01b218d0fbbe18dd5aa41e8a5bf7c29173d8562b56be3c3e0c`
-- closure digest: `fbddbb388a5e220052ac19904e25a750eab73b4b0e8b3d85630a358d77c2a8e5`
+- ledger ID: `rol_b50a57361a9dd1a739763dd713fade10dc5ba016ae95c4f0f8af505d95496a23`
+- closure digest: `898aed46f9e61dc66c7a0d757a670833adf6caa304338ad9317231aaa2356ec9`
 - status: `unknown` (intentionally conservative)
 - required obligations: 6
 - verified: 0
@@ -42,7 +42,7 @@ Tracked obligations:
 2. RETURN/datacard/password computer behavior;
 3. exact collision-tile taxonomy;
 4. the remaining special `$E9E5 == 6` flight-ground return case;
-5. byte-perfect ground fine-scroll collision alignment and `$C1-$C3 -> $E444` submode semantics;
+5. controlled runtime parity for the reconstructed ground collision grid and `$C1-$C3 -> $E444` submode semantics;
 6. exact ship/shadow projection ownership.
 
 ## Funes validation
@@ -103,4 +103,4 @@ Verified rules include:
 - `$074A/$074B` fixed landing anchor versus mutable `$E060/$E05F` ground-relative coordinate roles;
 - `$C1-$C3` blocked RIGHT contact branches into the secondary ground submode at `$E444`.
 
-The Godot scene now renders the recovered ground sprite frames and uses the recovered collision semantics. The modern expanded-world collision bridge remains explicitly provisional until `$0703-$0708` fine-scroll/tile/macro state is modeled byte-for-byte.
+The Godot scene now renders the recovered ground sprite frames and maps outdoor collision through the recovered C64 screen grid. The `$E280` pointer is `$797B/$7D7B`, giving exact samples UP(19,9), LEFT(18,10), RIGHT(20,10), DOWN(19,11). The bridge combines landing and inverse ground-scroll pixels before applying the recovered `$C1FD -> $C00E/$C03F -> $C070/$C091` normalization chain. Static alignment and unit-boundary tests pass; a controlled VICE parity capture remains desirable as runtime evidence.
