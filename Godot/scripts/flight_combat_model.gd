@@ -73,9 +73,23 @@ var projectile_state := 0
 var projectile_height := 0
 var projectile_heading := 0
 
-# $CF02 is cleared by the state-block initializer and only directly read by
-# the resident laser fire handler. Preserve the gate without inventing a name.
-var cf02_gate_state := 0
+# $CF00/$CF01/$CF02 are the recovered DAMAGE panel fields:
+# L.GEAR / ENGINE / LAZERS. $2022 adds 2..9 damage from queued impact events;
+# $2058 decays all three by one every $5A status ticks.
+const DAMAGE_RECOVERY_FRAMES := 0x5A
+const ENGINE_DISABLE_THRESHOLD := 0x28
+const LAZER_DISABLE_THRESHOLD := 0x07
+
+var landing_gear_damage := 0
+var engine_damage := 0
+var laser_damage := 0
+var damage_recovery_counter := 0
+var damage_random_bytes: Array = []
+var damage_random_cursor := 0
+
+# $CF26 is the persistent F7 shield toggle. No consumer exists in the
+# recovered impact/damage path, so it is deliberately status-only.
+var shields_on := false
 
 # Dynamic collision band starts at $94/$93 and is animated elsewhere.
 var dynamic_upper_threshold := 0x94
@@ -93,6 +107,7 @@ var object_attack_random_cursor := 0
 
 func configure_runtime(data: Dictionary) -> void:
     object_random_bytes = data.get("seed_bytes", []).duplicate()
+    damage_random_bytes = data.get("damage_random_bytes", []).duplicate()
     _ensure_object_slots()
 
 
@@ -102,7 +117,12 @@ func reset() -> void:
     projectile_state = 0
     projectile_height = 0
     projectile_heading = 0
-    cf02_gate_state = 0
+    landing_gear_damage = 0
+    engine_damage = 0
+    laser_damage = 0
+    damage_recovery_counter = 0
+    damage_random_cursor = 0
+    shields_on = false
     dynamic_upper_threshold = 0x94
     dynamic_lower_threshold = 0x93
     explosion_counter = 0
@@ -124,7 +144,85 @@ func projectile_exploding() -> bool:
 
 
 func can_fire() -> bool:
-    return cf02_gate_state < 7 and not projectile_active()
+    return laser_damage < LAZER_DISABLE_THRESHOLD and not projectile_active()
+
+
+func engine_disabled() -> bool:
+    return engine_damage >= ENGINE_DISABLE_THRESHOLD
+
+
+func toggle_shields() -> bool:
+    shields_on = not shields_on
+    return shields_on
+
+
+func apply_craft_impact(event_code: int) -> Dictionary:
+    var events := {
+        "applied": false,
+        "event_code": event_code,
+        "damage_type": "",
+        "damage_amount": 0,
+        "old_damage": 0,
+        "new_damage": 0,
+        "first_damage": false,
+    }
+    if event_code < 1 or event_code > 3:
+        return events
+
+    # $207A increments its self-modifying cursor, reads $C000,Y, then $2022
+    # masks to three bits and adds two. This produces an exact 2..9 increment.
+    var amount := (_next_damage_random() & 0x07) + 2
+    var old_damage := 0
+    match event_code:
+        1:
+            old_damage = landing_gear_damage
+            landing_gear_damage = (landing_gear_damage + amount) & 0xFF
+            events["damage_type"] = "L.GEAR"
+            events["new_damage"] = landing_gear_damage
+        2:
+            old_damage = engine_damage
+            engine_damage = (engine_damage + amount) & 0xFF
+            events["damage_type"] = "ENGINE"
+            events["new_damage"] = engine_damage
+        3:
+            old_damage = laser_damage
+            laser_damage = (laser_damage + amount) & 0xFF
+            events["damage_type"] = "LAZERS"
+            events["new_damage"] = laser_damage
+
+    events["applied"] = true
+    events["damage_amount"] = amount
+    events["old_damage"] = old_damage
+    events["first_damage"] = old_damage == 0
+    return events
+
+
+func advance_damage_recovery() -> Dictionary:
+    var events := {
+        "recovered": false,
+        "landing_gear_damage": landing_gear_damage,
+        "engine_damage": engine_damage,
+        "laser_damage": laser_damage,
+    }
+    damage_recovery_counter = (damage_recovery_counter + 1) & 0xFF
+    if damage_recovery_counter != DAMAGE_RECOVERY_FRAMES:
+        return events
+
+    damage_recovery_counter = 0
+    if landing_gear_damage > 0:
+        landing_gear_damage -= 1
+        events["recovered"] = true
+    if engine_damage > 0:
+        engine_damage -= 1
+        events["recovered"] = true
+    if laser_damage > 0:
+        laser_damage -= 1
+        events["recovered"] = true
+
+    events["landing_gear_damage"] = landing_gear_damage
+    events["engine_damage"] = engine_damage
+    events["laser_damage"] = laser_damage
+    return events
 
 
 func fire(heading: int, height: int) -> bool:
@@ -741,6 +839,13 @@ func _advance_object_explosion(slot: Dictionary) -> bool:
     for key in cleared:
         slot[key] = cleared[key]
     return true
+
+
+func _next_damage_random() -> int:
+    damage_random_cursor = (damage_random_cursor + 1) & 0xFF
+    if damage_random_bytes.is_empty():
+        return damage_random_cursor
+    return int(damage_random_bytes[damage_random_cursor % damage_random_bytes.size()]) & 0xFF
 
 
 func _next_object_random() -> int:

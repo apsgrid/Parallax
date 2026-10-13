@@ -54,6 +54,9 @@ payload = {
     "base_tiles": screen,
     "seed_base": 0x0900,
     "seed_bytes": list(ram[0x0900:0x2100]),
+    # $207A increments a byte cursor and reads $C000,Y before masking to
+    # three bits. Preserve that exact 256-byte resident source locally.
+    "damage_random_bytes": list(ram[0xC000:0xC100]),
     "patterns": patterns,
     "special_coords": special_coords,
     "passwords": passwords,

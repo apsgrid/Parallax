@@ -291,14 +291,41 @@ Godot now executes this scheduler before advancing the player projectile, create
 Static verification: `verify_flight_objects.py`.
 Deterministic regression: `Godot/tests/test_flight_object_scheduler.gd`.
 
+## Craft-impact damage — $FFA3 -> $CF15 -> $2022 (VERIFIED, IMPLEMENTED)
+
+Moving-object contact queues one of `[2,2,3,2]` at `$CF15`. The downstream status/damage routine at `$2022` is now traced exactly:
+
+- event 2 indexes `$CF01`, whose original status label is **ENGINE**;
+- event 3 indexes `$CF02`, whose original status label is **LAZERS**;
+- `$207A` increments an 8-bit cursor and reads `$C000,Y`;
+- `$2022` masks that byte with 7, adds 2, and adds the resulting **2–9** damage to the selected byte;
+- `$2058` runs from the ordinary status path and, every `$5A` (90) ticks, decrements nonzero `$CF00/$CF01/$CF02` by one.
+
+Verified gameplay thresholds:
+
+- `$CF01 ENGINE >= $28` (40): `$093C` zeros the craft integer velocity bytes and `$10EF` refuses the landing transition;
+- `$CF02 LAZERS >= 7`: `$10FC` refuses laser fire;
+- the higher indirect ENGINE-failure branch reached at `$CF01 >= $3C` (60) is still being resolved before it is modeled.
+
+The Godot model now consumes craft-collision event codes in the same frame, applies the recovered 2–9 damage source, decays the three damage fields every 90 status ticks, enforces the ENGINE landing/motion threshold, and enforces the LAZERS fire lockout.
+
+Static verification: `verify_flight_damage.py`.
+Deterministic regression: `Godot/tests/test_flight_damage.gd`.
+
+### Shields on this path — VERIFIED no consumer
+
+`$CF26` remains the F7 SHIELDS OFF/ON toggle. Full direct-reference analysis finds only the status display read and the `$2014-$2019` toggle itself. Crucially, neither `$FFA3` nor the now-complete `$2022` impact consumer reads `$CF26`, and the indexed damage target is selected only from `$CF00-$CF02`.
+
+Therefore **the recovered moving-object impact path is not shield-reduced**. Original Rules mode preserves the shield toggle/status state but deliberately does not invent protection for these collisions. This does not claim that no unrelated overlay or still-unresolved auxiliary-fire path could ever consult shields indirectly.
+
 ## Current boundary
 
-The **flight laser, terrain collision, authentic destructible-score path, and three-slot moving-object scheduler are reconstructed and implemented**.
+The **flight laser, terrain collision, authentic destructible-score path, three-slot moving-object scheduler, and moving-object ENGINE/LAZERS impact damage are reconstructed and implemented**.
 
 Remaining flight-combat evidence work is now narrower:
 
-- capture controlled VICE parity for projectile timing, destructible writeback, one spawn/movement sequence and one moving-object hit;
+- capture controlled VICE parity for projectile timing, destructible writeback, one spawn/movement sequence, one moving-object hit, and one craft-impact damage event;
 - verify exact original object-destruction presentation rather than treating the modern fade/scale as original behavior;
-- trace the recovered $FFA3 -> $CF15 event codes `[2,2,3,2]` through the downstream craft damage path;
-- determine whether the shield toggle participates in that path before implementing any shield protection effect;
+- resolve the `$FACC` auxiliary object-fire request into its exact projectile/effect behavior;
+- resolve the indirect `$CF01 >= $3C` catastrophic ENGINE-failure branch before implementing it;
 - resolve the exact activation cadence for the dynamic $93/$94 collision-band animation.

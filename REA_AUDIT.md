@@ -30,8 +30,8 @@ Generated graph JSON remains local under `rea_audit/`.
 ## REA reconstruction obligation ledger
 
 Authenticated review Evidence was generated with REA's own `createEvidence()` and `createEvidenceBundle()` implementation.
-- ledger ID: `rol_db8032e1057e4aa71242b01f1cc7f336e3eea15b44fea24d57610a419ee1bc82`
-- closure digest: `b200eeea69a8898054ffb1e7503e5ae88ea215f775042554725e3bde3446ac60`
+- ledger ID: `rol_edc8d0a0da48a7eb3f870f51a448b6159846b29e1e2caaa18fc4c3c0f70802ea`
+- closure digest: `e7445e97bdbccecf046ef477b8d360254a63dc664eee317792d4cb6b7bab8388`
 - status: `unknown` (intentionally conservative)
 - required obligations: 6
 - verified: 0
@@ -41,13 +41,13 @@ Tracked obligations:
 1. shield behavior beyond toggle/status presentation;
 2. remaining local entity types 1 and 3 and their player-facing effects;
 3. exact collision-tile taxonomy;
-4. controlled runtime parity for the implemented three-slot moving-flight-object scheduler plus exact destruction/craft-impact semantics;
+4. controlled runtime parity for the implemented three-slot moving-flight-object scheduler plus exact destruction/auxiliary-fire/catastrophic-engine semantics;
 5. controlled runtime parity for reconstructed outdoor/interior/scientist/endgame timing;
 6. exact ship/shadow projection ownership.
 
 ## Funes validation
 
-Current project memory source validates as 37 turns / 168 chunks / 0 rejected / 0 duplicate IDs before indexing.
+Current project memory source validates as 37 turns / 171 chunks / 0 rejected / 0 duplicate IDs before indexing.
 Recall checks correctly retrieved:
 - corrected Stage-5 range, byte count and SHA-256;
 - post-startup viewport/player coordinates and landing-ready conditions;
@@ -72,9 +72,10 @@ Funes is a retrieval layer, not original-game authority.
 - direct `$CF26` accesses only in the F7 toggle and SHIELDS ON/OFF status display;
 - the post-toggle `$1FA8` path is an event/status queue;
 - no `$26` entry in the relevant generic `$CF00,X/Y` state index tables inspected;
-- no identified resident flight damage/collision consumer of `$CF26`.
+- no identified resident flight damage/collision consumer of `$CF26`;
+- the now-complete `$FFA3 -> $CF15 -> $2022` moving-object contact path selects only `$CF01 ENGINE` or `$CF02 LAZERS`, proving that `$CF26` does not reduce/cancel this collision damage.
 
-This is strong negative evidence, not proof that every possible indirect/self-modifying/overlay path is absent. Original Rules mode must not invent a shield protection effect until stronger evidence is found.
+For moving-object contact this is now a verified negative, not merely an inference. A different unresolved auxiliary-fire/overlay path could still consult the flag indirectly. Original Rules mode starts SHIELDS OFF, preserves the toggle/status state, and does not invent protection for the verified contact path.
 
 ## Second-pass finding: flight ↔ ground transition
 
@@ -145,7 +146,7 @@ The first complete gameplay vertical slice is therefore implemented. The KARD/ac
 The computer layer is no longer an open reconstruction obligation.
 
 Verified and implemented findings now include:
-- authentic startup state: 20 credits, flight-endurance counter 99, one KARD `0-285`, PASS `-----`;
+- authentic startup state: 20 credits, **FUEL** `$CF03=99` (label verified at `$1CB8`), one KARD `0-285`, PASS `-----`;
 - two-slot KARD records in `C-NNN` form;
 - exact generated-KARD class table and three 0-7 digits;
 - original full-inventory replacement rule that preserves a class-0 slot-A KARD;
@@ -222,7 +223,7 @@ The corrected world extractor now accounts for the gameplay overlay swap, elimin
 
 Static authority is checked independently by `verify_endgame_state.py` and `verify_world_overlay_swap.py`. Deterministic coverage is in `test_endgame_model.gd` and `test_endgame_integration.gd`.
 
-Natural score qualification is now implemented through the verified resident laser/destructible path: a class-2/3 destructible hit queues +15 and feeds the same six-digit score used by the ending. The remaining combat obligation is narrower still: reconstruct the original three-slot moving-object scheduler so the already-verified `2*object_state` awards occur naturally. No synthetic targets are introduced.
+Natural score qualification is implemented through both verified score paths: class-2/3 destructible terrain queues +15, and the reconstructed three-slot moving-object scheduler now produces the original `2*object_state` awards naturally. Craft contact is also wired through the recovered ENGINE/LAZERS damage path rather than a synthetic health system.
 
 ## Flight combat / score-production milestone
 
@@ -238,6 +239,6 @@ Static and model evidence now resolves the resident score-producing laser paths:
 - `$2275+` consumes the pending award into the six-digit score;
 - `$FBFF-$FC43` moving-object collision uses current `$0778` height, category bands from `$FC3B-$FC42`, signed -11..+9 X/Y windows, and queues `2*$F828`.
 
-Godot now uses the verified single-projectile model and applies +15 only on recovered destructible terrain collisions. One such hit raises score from 000000 to 000015, naturally exceeding the recovered initial best score 000010.
+Godot now uses the verified single-projectile model, applies +15 only on recovered destructible terrain collisions, and runs the authentic three-slot moving-object scheduler with natural `2*object_state` awards. One destructible hit alone raises score from 000000 to 000015, naturally exceeding the recovered initial best score 000010.
 
-Remaining combat obligation: reconstruct and present the authentic three-slot moving-object scheduler/spawn/type/motion state before enabling enemy/object targets. The verified hit/award primitive exists, but no synthetic enemy layer is introduced.
+The subsequent craft-impact trace resolves `$CF15`: event 2 damages `$CF01 ENGINE`, event 3 damages `$CF02 LAZERS`, each by 2–9 from the `$C000,Y` stream. `$2058` recovers `$CF00-$CF02` once every 90 status ticks; ENGINE>=40 suppresses velocity/landing and LAZERS>=7 blocks fire. `$CF26` shields are absent from this path. Remaining combat obligations are runtime parity, exact object-destruction presentation, `$FACC` auxiliary fire, and the indirect ENGINE>=60 failure branch.

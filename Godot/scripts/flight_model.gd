@@ -165,7 +165,13 @@ func step(
         "transport_marker": Vector2i(-1, -1),
         "transport_destination_macro": Vector2i(-1, -1),
         "endgame_triggered": false,
+        "damage_recovered": false,
     }
+
+    # $1B00 -> $1FC7 -> $2058 is shared by the ordinary flight/ground status
+    # loop, so damage recovery continues outside flight as well.
+    var recovery: Dictionary = flight_combat_model.advance_damage_recovery()
+    events["damage_recovered"] = bool(recovery["recovered"])
 
     # The flight dispatcher tests $F4 before running any flight update.
     # Therefore the FIRE frame only sets the transition flag; $E000 runs
@@ -291,6 +297,11 @@ func step(
     if endgame_model.active():
         return events
 
+    # $093C zeros the integer velocity bytes when ENGINE damage reaches $28.
+    if flight_combat_model.engine_disabled():
+        vx_hi = 0
+        vy_hi = 0
+
     if flight_special_code == EndgameModel.TRANSPORT_TRIGGER_TILE and flight_height >= 0x14:
         var transport_events := _activate_transporter()
         if transport_events["transported"]:
@@ -338,7 +349,8 @@ func step(
     var fire_action := fire_pressed or fire_down
     if fire_action:
         if landing_ready:
-            if vx_hi == 0 and vy_hi == 0:
+            # $10EF refuses the ground transition when ENGINE damage >= $28.
+            if vx_hi == 0 and vy_hi == 0 and not flight_combat_model.engine_disabled():
                 ground_transition_flag = true
                 events["ground_transition_requested"] = true
         elif flight_combat_model.fire(heading, flight_height):
@@ -420,6 +432,7 @@ func advance_flight_objects(terrain_sampler: Callable, suppress_craft_collision:
             "craft_collisions": [],
             "object_overlap_destroys": [],
             "aux_fire_requests": [],
+            "damage_events": [],
             "score_award": 0,
         }
 
@@ -434,6 +447,12 @@ func advance_flight_objects(terrain_sampler: Callable, suppress_craft_collision:
     var score_award := int(events.get("score_award", 0))
     if score_award > 0:
         endgame_model.add_score(score_award)
+
+    events["damage_events"] = []
+    for collision in events.get("craft_collisions", []):
+        var damage_event: Dictionary = flight_combat_model.apply_craft_impact(int(collision.get("event_code", 0)))
+        if bool(damage_event["applied"]):
+            events["damage_events"].append(damage_event)
     return events
 
 

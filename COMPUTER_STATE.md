@@ -12,7 +12,7 @@ This document is the authoritative reconstruction of the KARD economy and comput
 
 The initialization table at $2113 establishes:
 
-- flight endurance / energy counter `$CF03 = 99`;
+- **FUEL** `$CF03 = 99`;
 - ship oxygen `$CF04 = 50`;
 - ship stun-guns `$CF07 = 1`;
 - ship ammunition `$CF08 = 50`;
@@ -23,7 +23,7 @@ The initialization table at $2113 establishes:
 
 This corrects the earlier prototype assumption that the player began without a KARD.
 
-The exact player-facing name of `$CF03` remains open. Its behavior is clear: it starts at 99, is periodically decremented during flight, zero reaches the failure path, and COMPUTASHOP adds 30 with a cap of 99. The modern model calls it **flight endurance** rather than inventing a fuel label.
+The exact player-facing name of `$CF03` is now **VERIFIED as FUEL**. The original status/inventory string table at `$1CB8` contains `FUEL` and the dispatcher maps that row to state index 3, i.e. `$CF03`. It starts at 99, is periodically decremented during flight, zero reaches the failure path, and COMPUTASHOP adds 30 with a cap of 99. The Godot variable remains named `flight_endurance` only for source/API compatibility.
 
 ## KARD format (VERIFIED)
 
@@ -137,7 +137,7 @@ If credits are below 20:
 On purchase:
 
 - credits `$CF2E -= 20`;
-- flight endurance `$CF03 += 30`, capped at 99;
+- FUEL `$CF03 += 30`, capped at 99;
 - carried oxygen `$CF30 += 20`, capped at 49;
 - carried ammunition `$CF32 += 20`, capped at 49;
 - drugs `$CF05 += 1`.

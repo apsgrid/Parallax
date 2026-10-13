@@ -102,7 +102,6 @@ var last_debug_footprint := false
 
 var debug_hud_visible := false
 var debug_footprint_visible := false
-var shields_on := true
 var status_message := "Recovered C64 flight model active"
 
 
@@ -203,8 +202,8 @@ func _physics_process(_delta: float) -> void:
 
     var shield_now := Input.is_key_pressed(KEY_F7) or bool(touch_pressed["shield"])
     if shield_now and not last_shield:
-        shields_on = not shields_on
-        status_message = "Shields %s" % ("ON" if shields_on else "OFF")
+        var shield_state := model.flight_combat_model.toggle_shields()
+        status_message = "Shields %s" % ("ON" if shield_state else "OFF")
     last_shield = shield_now
 
     var return_now := Input.is_key_pressed(KEY_ENTER) or bool(touch_pressed["return"])
@@ -299,8 +298,13 @@ func _physics_process(_delta: float) -> void:
         status_message = "FLIGHT OBJECT — recovered three-slot scheduler spawned %d" % int(flight_object_events["spawned"][0])
     if not flight_object_events["laser_hits"].is_empty():
         status_message = "LAZER HIT — moving object +%d" % int(flight_object_events["score_award"])
-    if not flight_object_events["craft_collisions"].is_empty():
-        status_message = "FLIGHT OBJECT COLLISION — damage/shield effect still under verification"
+    if not flight_object_events["damage_events"].is_empty():
+        var damage_event: Dictionary = flight_object_events["damage_events"][0]
+        status_message = "%s DAMAGED +%d — recovered flight damage state %d" % [
+            str(damage_event["damage_type"]),
+            int(damage_event["damage_amount"]),
+            int(damage_event["new_damage"]),
+        ]
     if bool(flight_combat_events.get("collision", false)):
         if bool(flight_combat_events.get("destructible", false)):
             status_message = "LAZER HIT — destructible world target +15"
@@ -1774,7 +1778,12 @@ func _update_hud() -> void:
         + "Landing gear     %s\n" % ("DOWN" if model.landing_gear else "UP")
         + "Footprint        %d / 9 landing cells\n" % model.footprint_safe_cells
         + "Landing ready    %s\n" % ("YES" if model.landing_ready else "no")
-        + "Shields          %s\n" % ("ON" if shields_on else "OFF")
+        + "Damage           L.GEAR %d   ENGINE %d   LAZERS %d\n" % [
+            model.flight_combat_model.landing_gear_damage,
+            model.flight_combat_model.engine_damage,
+            model.flight_combat_model.laser_damage,
+        ]
+        + "Shields          %s   [recovered status toggle; no damage consumer]\n" % ("ON" if model.flight_combat_model.shields_on else "OFF")
         + "Scroll accum      %d, %d original units\n" % [model.world_x, model.world_y]
         + "World tile        %d, %d\n" % [_current_world_tile().x, _current_world_tile().y]
         + "Viewport macro    %d, %d\n" % [model.viewport_macro().x, model.viewport_macro().y]

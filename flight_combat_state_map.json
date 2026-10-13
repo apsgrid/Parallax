@@ -9,7 +9,7 @@
     "state": "0x077B",
     "height_snapshot": "0x077C",
     "heading_snapshot": "0x116B",
-    "fire_gate": "0xCF02 < 7 and state == 0",
+    "fire_gate": "LAZERS damage 0xCF02 < 7 and projectile state == 0",
     "spawn": {"x": 84, "y": 117, "state": 30},
     "x_bounds": [12,171],
     "y_bounds": [50,177],
@@ -88,10 +88,29 @@
     "deterministic_test": "Godot/tests/test_flight_object_scheduler.gd",
     "confidence": "verified_endpoint"
   },
+  "craft_impact_damage": {
+    "queue": "0xFFA3 -> 0xCF15",
+    "consumer": "0x2022",
+    "event_table": [2,2,3,2],
+    "event_2": {"target": "0xCF01", "label": "ENGINE"},
+    "event_3": {"target": "0xCF02", "label": "LAZERS"},
+    "random_source": "increment cursor at 0x2079 then read 0xC000,Y; mask 7; add 2",
+    "damage_per_impact": [2,9],
+    "recovery": "0x2058 decrements nonzero 0xCF00-0xCF02 every 0x5A status ticks",
+    "engine_disable_threshold": 40,
+    "lazer_fire_lockout_threshold": 7,
+    "shield_address": "0xCF26",
+    "shield_effect_on_this_path": false,
+    "modern_implementation": true,
+    "static_verifier": "verify_flight_damage.py",
+    "deterministic_test": "Godot/tests/test_flight_damage.gd",
+    "confidence": "verified"
+  },
   "open": [
-    "Controlled VICE parity for laser/destructible/object spawn-movement-hit timing",
+    "Controlled VICE parity for laser/destructible/object spawn-movement-hit/damage timing",
     "Exact original moving-object destruction presentation",
-    "Downstream craft damage/shield semantics for $FFA3 -> $CF15 event codes",
+    "Exact behavior of the $FACC auxiliary object-fire request",
+    "Indirect catastrophic ENGINE-failure path when $CF01 >= 0x3C",
     "Exact activation cadence for the dynamic $93/$94 collision-band animation"
   ]
 }

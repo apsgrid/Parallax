@@ -18,6 +18,8 @@ const PASSWORDS := ["STACK", "JEWEL", "PARCH", "SALON", "GLOBE"]
 const KARD_CLASS_TABLE := [1,0,2,0,3,0,4,0,5,0,1,0,2,0,3,0]
 
 var credits := 20
+# $CF03 is explicitly labelled FUEL in the original $1CB8 status string.
+# Keep the established internal name for compatibility with existing callers.
 var flight_endurance := 99
 var kards: Array = [[0, 2, 8, 5]]
 var password_display := ["-", "-", "-", "-", "-"]

@@ -4,7 +4,7 @@
     "sha256": "232471c51e24254873f182b865378aca60a0b171490d75c66123e007e1cdb137"
   },
   "startup": {
-    "flight_endurance": {"address": "0xCF03", "value": 99, "confidence": "verified"},
+    "fuel": {"address": "0xCF03", "label_address": "0x1CB8", "value": 99, "internal_model_name": "flight_endurance", "confidence": "verified"},
     "kard_count": {"address": "0xCF09", "value": 1, "confidence": "verified"},
     "kard_a": {"addresses": ["0xCF0A","0xCF0B","0xCF0C","0xCF0D"], "display": "0-285", "confidence": "verified"},
     "credits": {"address": "0xCF2E", "value": 20, "confidence": "verified"},
@@ -44,7 +44,7 @@
     "requires_kard": true,
     "consumes_kard": false,
     "effects": {
-      "flight_endurance": {"delta": 30, "cap": 99, "address": "0xCF03"},
+      "fuel": {"delta": 30, "cap": 99, "address": "0xCF03"},
       "carried_oxygen": {"delta": 20, "cap": 49, "address": "0xCF30"},
       "carried_ammunition": {"delta": 20, "cap": 49, "address": "0xCF32"},
       "drugs": {"delta": 1, "address": "0xCF05"}
@@ -89,8 +89,6 @@
   },
   "open": [
     "Exact player-facing identities/effects of remaining local entity types 1 and 3",
-    "Complete three-slot moving-flight-object scheduler so verified 2*object_state awards occur naturally",
-    "Controlled VICE parity for terminal/scientist/endgame transaction timing and presentation",
-    "Exact player-facing name of 0xCF03 flight endurance/energy counter"
+    "Controlled VICE parity for terminal/scientist/endgame transaction timing and presentation"
   ]
 }
