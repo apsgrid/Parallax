@@ -416,6 +416,10 @@ func _take_random(values: Array, index: int) -> int:
     return _next_random()
 
 
+func next_random_byte() -> int:
+    return _next_random()
+
+
 func _next_random() -> int:
     if seed_bytes.is_empty():
         _random_cursor = (_random_cursor + 1) & 0xFF

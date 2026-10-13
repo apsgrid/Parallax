@@ -21,7 +21,7 @@ Therefore REA must not be cited as the decompiler/disassembler authority for Par
 ## REA historical source graph
 
 WSL `import-reference-source` successfully created a `HistoricalSourceGraph` for the Godot reconstruction.
-- root SHA-256: `84a2d51eac854d069e2f8e315fdbfed74864f32521eece6d40cd831db8fcb9ca`
+- root SHA-256: `09e0d2603abcf225442e14e7f8db98fe8afa031c0dc8d0892a94c5a975052e43`
 - authority: `historical-reference`
 - includes hashed source, tests, project files, local generated world/graphics assets and documentation at audit time.
 
@@ -30,8 +30,8 @@ Generated graph JSON remains local under `rea_audit/`.
 ## REA reconstruction obligation ledger
 
 Authenticated review Evidence was generated with REA's own `createEvidence()` and `createEvidenceBundle()` implementation.
-- ledger ID: `rol_58f018a101ec393d1e2095f77f72ed7c610150c5516b8a8296f810528cbac14a`
-- closure digest: `b4c34910bbd105b20764ce9e153e5e2e04d39d9daec89fc6a2988fb340a42052`
+- ledger ID: `rol_c6ce00982b80553bc43a6d3284919f3c5d2fed9f5da688b9ff09eec7a1599dda`
+- closure digest: `39d24b8513b60fdda1387fefac72c651107a69e13830a70ab835dfb587e7a91f`
 - status: `unknown` (intentionally conservative)
 - required obligations: 6
 - verified: 0
@@ -39,15 +39,15 @@ Authenticated review Evidence was generated with REA's own `createEvidence()` an
 
 Tracked obligations:
 1. shield behavior beyond toggle/status presentation;
-2. scientist/NPC stun-combat and natural generated-KARD acquisition;
+2. remaining local entity types 1 and 3 and their player-facing effects;
 3. exact collision-tile taxonomy;
 4. progression-5/endgame behavior after the five regional passwords;
-5. controlled runtime parity for reconstructed outdoor/interior movement and terminal timing;
+5. controlled runtime parity for reconstructed outdoor/interior/scientist movement and terminal timing;
 6. exact ship/shadow projection ownership.
 
 ## Funes validation
 
-Current project memory source validates as 29 turns / 111 chunks / 0 rejected / 0 duplicate IDs before indexing.
+Current project memory source validates as 31 turns / 126 chunks / 0 rejected / 0 duplicate IDs before indexing.
 Recall checks correctly retrieved:
 - corrected Stage-5 range, byte count and SHA-256;
 - post-startup viewport/player coordinates and landing-ready conditions;
@@ -55,7 +55,10 @@ Recall checks correctly retrieved:
 - authentic starting KARD `0-285` and 20 credits;
 - COMPUTABANK / COMPUTASHOP behavior and BONANZA PACK effects;
 - STACK / JEWEL / PARCH / SALON / GLOBE progression;
-- scientist-present `$E9E5 == 6` and solved/unsolved return behavior.
+- scientist-present `$E9E5 == 6` and solved/unsolved return behavior;
+- type 4 roaming scientist → type 5 stunned scientist → type 6 accompanying scientist;
+- stun-gun one-ammunition cost, four-pixel projectile and -6..+5 entity hit window;
+- generated-KARD Y/N interaction and the type-6 widened return gate.
 
 Funes is a retrieval layer, not original-game authority.
 
@@ -157,4 +160,31 @@ Godot now implements this state in ComputerModel, integrates it through FlightMo
 
 Deterministic coverage now includes `test_computer_model.gd`, `test_computer_integration.gd` and the full vertical-slice test. The static verifier `verify_computer_state.py` independently checks the canonical runtime bytes.
 
-The REA open obligation has therefore moved to the separate scientist/NPC stun-combat path that naturally reaches the recovered KARD generator at `$F061`. A second new obligation tracks progression-5/endgame behavior after all five passwords.
+The scientist/NPC stun-combat path that naturally reaches `$F061` has since been reconstructed and implemented. The remaining entity obligation is now limited to local entity types 1 and 3 and their exact player-facing effects. Progression-5/endgame remains a separate open obligation.
+
+## Second-pass finding: scientist stun and natural KARD acquisition
+
+The scientist/KARD acquisition loop is no longer an open reconstruction obligation.
+
+Verified and implemented findings now include:
+- current-region gating at `$E833` for both local spawning and stun-gun fire;
+- random local spawn search from the shared `$E977` byte stream;
+- effective entity-type selector table `1,3,4,4,4,4,4,1`;
+- type 4 as roaming scientist, type 5 as stunned scientist, and type 6 as accompanying scientist;
+- one-pixel cardinal entity movement with blocked-direction retries and the original wander counter;
+- carried stun-gun + ammunition requirement, one-ammunition shot cost, and four-pixel projectile vectors;
+- exact projectile/entity hit box of -6..+5 on both axes;
+- type 4/type 6 stun-hit transition to type 5 and removal of other hittable types;
+- eight two-frame projectile-impact states, for a 16-frame impact lifetime;
+- exact type-5 approach window X -9..+8 / Y -6..+5;
+- one generated-KARD offer per outing at `$F061`, with generation before the Y/N decision;
+- original two-slot KARD insertion on Y and discard on N;
+- type-5 -> type-6 promotion after either answer when no scientist is already aboard;
+- type-6 +16 X follower positioning and the widened -27 X return-to-craft bound;
+- `$E760` restoration of an unsolved captured scientist to the ship.
+
+`EncounterModel`, the recovered encounter sprites, the Y/N KARD prompt, and the full natural scientist loop are integrated into Godot. The end-to-end regression now proves roaming scientist -> stun -> KARD offer -> KARD acquisition -> type-6 escort -> local exit -> widened return gate -> scientist aboard with KARD retained.
+
+Static authority is independently checked by `verify_scientist_encounter.py`. Deterministic coverage is in `test_encounter_model.gd` and `test_scientist_loop.gd`.
+
+The REA entity obligation has moved to the genuinely unresolved local entity types 1 and 3. Their shared movement/spawn mechanics are known, and a stun hit removes them rather than entering the scientist lifecycle, but their exact identities, attack/damage behavior and player-facing effects remain open.

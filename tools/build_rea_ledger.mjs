@@ -18,13 +18,13 @@ const findings = [
     next: ["Test for indirect/self-modifying or overlay-specific reads of the shield state.", "Capture a reproducible original damage scenario with shields OFF and ON before implementing any protection effect."]
   },
   {
-    id: "entity.kard-acquisition",
-    title: "Reconstruct the scientist/NPC stun-combat path that naturally offers generated KARDs",
+    id: "entity.remaining-types",
+    title: "Resolve remaining local entity types 1 and 3 and their player-facing effects",
     family: "entity-combat",
-    location: "$E9E5 entity types 4/5/6 -> $EECD stun transition -> $F026/$F061 KARD offer",
-    finding: "The KARD/economy/computer state is now reconstructed and implemented, including authentic startup KARD 0-285, generated-KARD format/replacement, COMPUTABANK, COMPUTASHOP, password-letter discovery, scientist-gated regional passwords and RETURN status. The original KARD generator at $F061 is modeled, but the world/NPC stun-combat interaction that naturally reaches it is not yet connected to the modern playable scene.",
-    sources: ["COMPUTER_STATE.md", "Godot/scripts/computer_model.gd", "Godot/tests/test_computer_model.gd", "Godot/tests/test_computer_integration.gd", "verify_computer_state.py", "trace_kard_state.py"],
-    next: ["Trace entity types 4/5/6, projectile/stun collision and interaction timing through $EECD/$F026.", "Implement the NPC scientist encounter so generated KARDs are acquired naturally.", "Capture one original VICE stun -> KARD offer case."]
+    location: "$E9E7 entity-type table -> $EA02 movement -> $EECD stun-hit dispatch",
+    finding: "The scientist encounter is now reconstructed and implemented end-to-end: type 4 roaming scientist -> stun hit -> type 5 stunned scientist -> $F026/$F061 generated-KARD Y/N interaction -> type 6 accompanying scientist -> widened return gate and $E760 ship reconciliation. Types 1 and 3 remain in the same spawn/movement system and are removed by a stun-projectile hit instead of entering the scientist lifecycle, but their exact identities and player-facing effects remain open.",
+    sources: ["ENCOUNTER_STATE.md", "encounter_state_map.json", "Godot/scripts/encounter_model.gd", "Godot/tests/test_encounter_model.gd", "Godot/tests/test_scientist_loop.gd", "verify_scientist_encounter.py", "trace_scientist_encounter.py", "trace_scientist_semantics.py"],
+    next: ["Trace type-1/type-3 sprite behavior, contact/damage paths and any attack state.", "Correlate their spawn locations and sprite pointers with original visuals.", "Capture one original VICE encounter for each remaining type."]
   },
   {
     id: "terrain.collision.taxonomy",

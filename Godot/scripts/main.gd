@@ -5,6 +5,7 @@ const GroundModel = preload("res://scripts/ground_model.gd")
 const SupplyModel = preload("res://scripts/supply_model.gd")
 const InteriorModel = preload("res://scripts/interior_model.gd")
 const ComputerModel = preload("res://scripts/computer_model.gd")
+const EncounterModel = preload("res://scripts/encounter_model.gd")
 
 const TILE_SIZE := 2.0
 const SIM_UNITS_PER_TILE := 8.0
@@ -33,6 +34,9 @@ var stream_center_tile := Vector2i(-9999, -9999)
 var ship: Node3D
 var ground_player: Sprite3D
 var ground_sprite_textures := {}
+var encounter_sprite_textures := {}
+var encounter_entity: Sprite3D
+var stun_projectile: Sprite3D
 var camera: Camera3D
 var hud: Label
 var hud_panel: PanelContainer
@@ -43,6 +47,8 @@ var terminal_label: Label
 var kard_panel: PanelContainer
 var kard_label: Label
 var kard_panel_frames := 0
+var kard_offer_panel: PanelContainer
+var kard_offer_label: Label
 var gear_nodes := []
 var footprint_markers := []
 var bolts := []
@@ -74,30 +80,35 @@ func _ready() -> void:
     _load_tile_atlases()
     _load_interior_atlases()
     _load_ground_sprites()
+    _load_encounter_sprites()
     _build_environment()
     _build_world()
     _build_interior_root()
     _build_ship()
     _build_ground_player()
+    _build_encounter_sprites()
     _build_camera()
     _build_hud()
     _build_supply_hud()
     _build_terminal_hud()
     _build_kard_hud()
+    _build_kard_offer_hud()
     _update_visuals()
     _update_hud()
 
 
 func _physics_process(_delta: float) -> void:
     var terminal_active := model.in_interior() and model.interior_model.terminal_open
+    var offer_active := model.in_interior() and model.kard_offer_pending()
+    var modal_input := terminal_active or offer_active
     var input_bits := 0
-    if Input.is_key_pressed(KEY_RIGHT) or (not terminal_active and Input.is_key_pressed(KEY_D)):
+    if not offer_active and (Input.is_key_pressed(KEY_RIGHT) or (not terminal_active and Input.is_key_pressed(KEY_D))):
         input_bits |= 0x01
-    if Input.is_key_pressed(KEY_LEFT) or (not terminal_active and Input.is_key_pressed(KEY_A)):
+    if not offer_active and (Input.is_key_pressed(KEY_LEFT) or (not terminal_active and Input.is_key_pressed(KEY_A))):
         input_bits |= 0x02
-    if Input.is_key_pressed(KEY_DOWN) or (not terminal_active and Input.is_key_pressed(KEY_S)):
+    if not offer_active and (Input.is_key_pressed(KEY_DOWN) or (not terminal_active and Input.is_key_pressed(KEY_S))):
         input_bits |= 0x04
-    if Input.is_key_pressed(KEY_UP) or (not terminal_active and Input.is_key_pressed(KEY_W)):
+    if not offer_active and (Input.is_key_pressed(KEY_UP) or (not terminal_active and Input.is_key_pressed(KEY_W))):
         input_bits |= 0x08
 
     var gear_now := Input.is_key_pressed(KEY_SPACE)
@@ -125,7 +136,7 @@ func _physics_process(_delta: float) -> void:
     last_shield = shield_now
 
     var return_now := Input.is_key_pressed(KEY_ENTER)
-    if return_now and not last_return and not terminal_active:
+    if return_now and not last_return and not modal_input:
         _show_kard_status()
         status_message = "KARD/PASS status"
     last_return = return_now
@@ -187,6 +198,16 @@ func _physics_process(_delta: float) -> void:
     if events["entered_interior"]:
         _rebuild_interior_room()
         status_message = "ENTER STRUCTURE — recovered $E444 local-area mode ($%02X)" % int(events["interior_entry_code"])
+    if events["entity_spawned"]:
+        status_message = "LOCAL ENTITY SPAWNED — original current-region encounter"
+    if events["stun_projectile_fired"]:
+        status_message = "STUN-GUN FIRED — one ammunition used"
+    if events["scientist_stunned"]:
+        status_message = "SCIENTIST STUNNED — approach for KARD interaction"
+    if events["kard_offer_opened"]:
+        status_message = "KARD OFFER — Y take / N decline"
+    if events["scientist_following"]:
+        status_message = "SCIENTIST ACCOMPANYING"
     if events["interior_terminal_opened"]:
         status_message = "%s — recovered terminal interaction" % InteriorModel.terminal_name(int(events["interior_terminal_kind"]))
     if events["exited_interior"]:
@@ -210,6 +231,16 @@ func _unhandled_key_input(event: InputEvent) -> void:
     var key_event := event as InputEventKey
     if not key_event.pressed or key_event.echo:
         return
+
+    if model.in_interior() and model.kard_offer_pending():
+        if key_event.keycode == KEY_Y:
+            var take_events := model.answer_kard_offer(true)
+            status_message = "KARD TAKEN — scientist accompanying" if take_events["scientist_following"] else "KARD TAKEN"
+        elif key_event.keycode == KEY_N:
+            var decline_events := model.answer_kard_offer(false)
+            status_message = "KARD DECLINED — scientist accompanying" if decline_events["scientist_following"] else "KARD DECLINED"
+        return
+
     if not (model.in_interior() and model.interior_model.terminal_open):
         return
 
@@ -385,6 +416,24 @@ func _load_ground_sprites() -> void:
         ground_sprite_textures[frame] = ImageTexture.create_from_image(image)
 
 
+func _load_encounter_sprites() -> void:
+    encounter_sprite_textures.clear()
+    var pointers := []
+    for ptr in range(0x40, 0x48):
+        pointers.append(ptr)
+    pointers.append(0x55)
+    for ptr in range(0x9D, 0xB1):
+        pointers.append(ptr)
+
+    for ptr in pointers:
+        var relative_path := "res://generated/encounter_sprites/ptr_%02X.png" % ptr
+        var image := Image.load_from_file(ProjectSettings.globalize_path(relative_path))
+        if image == null or image.is_empty():
+            push_error("Unable to load generated C64 encounter sprite: " + relative_path)
+            continue
+        encounter_sprite_textures[ptr] = ImageTexture.create_from_image(image)
+
+
 func _build_world() -> void:
     tile_side_material = _make_material(Color(0.075, 0.08, 0.09))
 
@@ -502,6 +551,26 @@ func _build_ground_player() -> void:
     if ground_sprite_textures.has(0x58):
         ground_player.texture = ground_sprite_textures[0x58]
     add_child(ground_player)
+
+
+func _build_encounter_sprites() -> void:
+    encounter_entity = Sprite3D.new()
+    encounter_entity.name = "EncounterEntity"
+    encounter_entity.pixel_size = WORLD_SCALE
+    encounter_entity.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+    encounter_entity.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+    encounter_entity.shaded = false
+    encounter_entity.visible = false
+    add_child(encounter_entity)
+
+    stun_projectile = Sprite3D.new()
+    stun_projectile.name = "StunProjectile"
+    stun_projectile.pixel_size = WORLD_SCALE
+    stun_projectile.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+    stun_projectile.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+    stun_projectile.shaded = false
+    stun_projectile.visible = false
+    add_child(stun_projectile)
 
 
 func _build_camera() -> void:
@@ -654,6 +723,40 @@ func _show_kard_status() -> void:
     kard_label.text = "\n".join(lines)
     kard_panel.visible = true
     kard_panel_frames = 150
+
+
+func _build_kard_offer_hud() -> void:
+    var canvas := CanvasLayer.new()
+    canvas.layer = 7
+    add_child(canvas)
+
+    kard_offer_panel = PanelContainer.new()
+    kard_offer_panel.position = Vector2(450, 190)
+    kard_offer_panel.custom_minimum_size = Vector2(380, 270)
+
+    var style := StyleBoxFlat.new()
+    style.bg_color = Color(0.006, 0.008, 0.012, 0.97)
+    style.border_width_left = 2
+    style.border_width_top = 2
+    style.border_width_right = 2
+    style.border_width_bottom = 2
+    style.border_color = Color(0.82, 0.88, 0.58, 0.96)
+    style.corner_radius_top_left = 5
+    style.corner_radius_top_right = 5
+    style.corner_radius_bottom_left = 5
+    style.corner_radius_bottom_right = 5
+    kard_offer_panel.add_theme_stylebox_override("panel", style)
+    kard_offer_panel.visible = false
+    canvas.add_child(kard_offer_panel)
+
+    kard_offer_label = Label.new()
+    kard_offer_label.custom_minimum_size = Vector2(350, 240)
+    kard_offer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    kard_offer_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+    kard_offer_label.add_theme_font_size_override("font_size", 27)
+    kard_offer_label.add_theme_color_override("font_color", Color(0.96, 0.98, 0.80))
+    kard_offer_label.add_theme_constant_override("line_spacing", 8)
+    kard_offer_panel.add_child(kard_offer_label)
 
 
 func _update_terminal_hud() -> void:
@@ -899,6 +1002,16 @@ func _make_world_tile(origin: Vector3, height: float, material: StandardMaterial
     world_root.add_child(top)
 
 
+func _interior_pixel_to_world(position_value: Vector2i, y_value: float = 0.65) -> Vector3:
+    var cell_x := float(position_value.x - 0x0C) / 8.0
+    var cell_y := float(position_value.y - 0x2D) / 8.0 + 1.0
+    return Vector3(
+        (cell_x - 20.0) * TILE_SIZE,
+        y_value,
+        (cell_y - 10.0) * TILE_SIZE
+    )
+
+
 func _update_visuals() -> void:
     var in_interior := model.in_interior()
     var y_height := 0.44 if model.landed else 1.0 + float(model.flight_height - FlightModel.HEIGHT_MIN) * HEIGHT_SCALE
@@ -929,15 +1042,35 @@ func _update_visuals() -> void:
         if ground_sprite_textures.has(frame):
             ground_player.texture = ground_sprite_textures[frame]
     elif in_interior:
-        var cell := model.interior_model.center_cell()
-        ground_player.position = Vector3(
-            float(cell.x - 20) * TILE_SIZE,
-            0.65,
-            float(cell.y - 10) * TILE_SIZE
-        )
+        ground_player.position = _interior_pixel_to_world(model.interior_model.local_position)
         var frame := model.interior_model.frame_code
         if ground_sprite_textures.has(frame):
             ground_player.texture = ground_sprite_textures[frame]
+
+    if encounter_entity != null:
+        var entity_visible := (
+            in_interior
+            and model.encounter_model.entity_type != EncounterModel.TYPE_NONE
+            and model.encounter_model.entity_position.x != 0
+        )
+        encounter_entity.visible = entity_visible
+        if entity_visible:
+            var entity_ptr := model.encounter_model.entity_sprite_pointer(
+                model.interior_model.frame_code,
+                model.computer_model.password_solved_this_trip
+            )
+            if encounter_sprite_textures.has(entity_ptr):
+                encounter_entity.texture = encounter_sprite_textures[entity_ptr]
+            encounter_entity.position = _interior_pixel_to_world(model.encounter_model.entity_position, 0.66)
+
+    if stun_projectile != null:
+        var projectile_visible := in_interior and model.encounter_model.projectile_active
+        stun_projectile.visible = projectile_visible
+        if projectile_visible:
+            var projectile_ptr := model.encounter_model.projectile_sprite_pointer()
+            if encounter_sprite_textures.has(projectile_ptr):
+                stun_projectile.texture = encounter_sprite_textures[projectile_ptr]
+            stun_projectile.position = _interior_pixel_to_world(model.encounter_model.projectile_position, 0.72)
 
     if supply_panel != null:
         supply_panel.visible = model.in_supply_menu()
@@ -945,9 +1078,18 @@ func _update_visuals() -> void:
             _update_supply_hud()
 
     if terminal_panel != null:
-        terminal_panel.visible = in_interior and model.interior_model.terminal_open
+        terminal_panel.visible = (
+            in_interior
+            and model.interior_model.terminal_open
+            and not model.kard_offer_pending()
+        )
         if terminal_panel.visible:
             _update_terminal_hud()
+
+    if kard_offer_panel != null:
+        kard_offer_panel.visible = in_interior and model.kard_offer_pending()
+        if kard_offer_panel.visible:
+            kard_offer_label.text = model.encounter_model.kard_offer_text(model.computer_model)
 
     var focus := ship.position
     if model.on_foot() or in_interior:

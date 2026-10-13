@@ -15,6 +15,7 @@ docs=[
     ("ground-state","GROUND_STATE.md"),
     ("interior-state","INTERIOR_STATE.md"),
     ("computer-state","COMPUTER_STATE.md"),
+    ("encounter-state","ENCOUNTER_STATE.md"),
     ("world-format","WORLD_FORMAT.md"),
     ("tile-graphics","TILE_GRAPHICS.md"),
     ("re-tooling","RE_TOOLING.md"),

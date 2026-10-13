@@ -33,6 +33,13 @@ Current prototype:
 - recovered 20-credit COMPUTASHOP BONANZA PACK with exact inventory effects/caps
 - recovered KARD password-letter discovery and all five scientist-gated regional passwords
 - recovered RETURN KARD/PASS status display
+- recovered current-region local entity spawning from the shared $E977 byte stream
+- recovered scientist type 4 → stunned type 5 → accompanying type 6 lifecycle
+- recovered carried stun-gun/ammunition checks, one-ammo shot cost and four-pixel stun projectile
+- recovered scientist hit box, 16-frame projectile impact state and close-range KARD interaction
+- playable generated-KARD `TAKE ? Y/N` prompt with original two-slot inventory behavior
+- recovered type-6 scientist follower and widened -27 X return-to-craft gate
+- executable scientist loop: stun → KARD offer → capture → escort → return scientist aboard
 - executable vertical slice: flight → land → supply → disembark → walk → interior terminal → outdoors → craft → flight
 - complete recovered 480×480 world available to the renderer
 - streamed world window that follows the craft
@@ -50,7 +57,8 @@ Verified initial geometry:
 Controls:
 - In flight: Left/Right or A/D turn; Down/S climbs; Up/W dives
 - On foot/interior: Arrows/WASD use the recovered RIGHT → LEFT → DOWN → UP priority and one-pixel movement
-- Z: fire; when landing-ready and stopped, commit landing; in SHIP SUPPLY, select on release; on foot at the craft, return to flight; in terminals, insert/continue
+- Z: fire; when landing-ready and stopped, commit landing; in SHIP SUPPLY, select on release; on foot at the craft, return to flight; inside a current-region structure, fire the recovered stun-gun when carried stun-gun + ammunition are available; in terminals, insert/continue
+- Y/N at a stunned-scientist KARD offer: take or decline the generated KARD; either answer can still promote the scientist to accompanying state when no scientist is already aboard
 - A/B in terminal selection: choose KARD A or B; B also buys the offered BONANZA PACK
 - 0–9 in KARD authentication: enter the complete four-digit KARD number
 - A–Z at a regional password gate: enter the five-letter password; Backspace edits terminal input
@@ -62,6 +70,6 @@ Controls:
 - F1: toggle diagnostic HUD
 - F2: toggle 3×3 landing-footprint overlay
 
-The deterministic reference layers live in `scripts/flight_model.gd`, `ground_model.gd`, `supply_model.gd`, `interior_model.gd`, and `computer_model.gd`. Computer/economy coverage lives in `tests/test_computer_model.gd` and `test_computer_integration.gd`; the complete gameplay-loop regression lives in `tests/test_vertical_slice.gd`.
+The deterministic reference layers live in `scripts/flight_model.gd`, `ground_model.gd`, `supply_model.gd`, `interior_model.gd`, `computer_model.gd`, and `encounter_model.gd`. Scientist/stun coverage lives in `tests/test_encounter_model.gd` and `test_scientist_loop.gd`; computer/economy coverage lives in `test_computer_model.gd` and `test_computer_integration.gd`; the complete gameplay-loop regression lives in `tests/test_vertical_slice.gd`.
 
-Generated local world/graphics files are intentionally excluded from Git because they contain derived original game data. They are regenerated from the authorised local source media. Interior assets are rebuilt with `extract_interior_runtime.py` and `generate_interior_tile_atlases.py`.
+Generated local world/graphics files are intentionally excluded from Git because they contain derived original game data. They are regenerated from the authorised local source media. Interior assets are rebuilt with `extract_interior_runtime.py` and `generate_interior_tile_atlases.py`; scientist/stun sprite assets are rebuilt with `generate_encounter_sprites.py`.

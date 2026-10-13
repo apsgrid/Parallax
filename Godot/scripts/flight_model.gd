@@ -5,6 +5,7 @@ const GroundModel = preload("res://scripts/ground_model.gd")
 const SupplyModel = preload("res://scripts/supply_model.gd")
 const InteriorModel = preload("res://scripts/interior_model.gd")
 const ComputerModel = preload("res://scripts/computer_model.gd")
+const EncounterModel = preload("res://scripts/encounter_model.gd")
 
 const GROUND_PHASE_NONE := 0
 const GROUND_PHASE_SUPPLY := 1
@@ -66,6 +67,7 @@ var ground_model := GroundModel.new()
 var supply_model := SupplyModel.new()
 var interior_model := InteriorModel.new()
 var computer_model := ComputerModel.new()
+var encounter_model := EncounterModel.new()
 
 var _input_counters := [0, 0, 0, 0]
 
@@ -95,12 +97,14 @@ func reset() -> void:
     supply_model.reset_all()
     interior_model.reset()
     computer_model.reset_all()
+    encounter_model.reset_all()
     _input_counters = [0, 0, 0, 0]
 
 
 func configure_interior_runtime(data: Dictionary) -> void:
     interior_model.configure_runtime(data)
     computer_model.configure_runtime(data)
+    encounter_model.configure_runtime(data)
 
 
 func toggle_landing_gear() -> void:
@@ -138,6 +142,13 @@ func step(
         "interior_terminal_opened": false,
         "interior_terminal_kind": InteriorModel.TERMINAL_NONE,
         "interior_entry_code": -1,
+        "entity_spawned": false,
+        "entity_type": EncounterModel.TYPE_NONE,
+        "stun_projectile_fired": false,
+        "scientist_stunned": false,
+        "kard_offer_opened": false,
+        "kard_offer_pending": false,
+        "scientist_following": false,
     }
 
     # The flight dispatcher tests $F4 before running any flight update.
@@ -168,22 +179,49 @@ func step(
                 ground_phase = GROUND_PHASE_OUTSIDE
                 ground_model.reset()
                 ground_player_offset = Vector2i.ZERO
+                if supply_model.carried_scientists > 0:
+                    encounter_model.set_carried_scientist(Vector2i.ZERO)
                 events["exited_ship"] = true
             return events
 
         if ground_phase == GROUND_PHASE_INTERIOR:
+            if encounter_model.kard_offer_pending:
+                events["kard_offer_pending"] = true
+                return events
+
             var interior_events: Dictionary = interior_model.step(input_bits)
             events["ground_moved"] = interior_events["moved"]
             events["ground_move_delta"] = interior_events["move_delta"]
             events["interior_terminal_opened"] = interior_events["terminal_opened"]
             events["interior_terminal_kind"] = interior_events["terminal_kind"]
 
-            if interior_events["terminal_opened"]:
+            var encounter_events: Dictionary = encounter_model.step_frame(
+                interior_model.local_position,
+                interior_model.facing,
+                fire_down and not interior_model.terminal_open,
+                computer_model.progression_index,
+                supply_model,
+                computer_model
+            )
+            events["stun_projectile_fired"] = encounter_events["projectile_fired"]
+            events["scientist_stunned"] = encounter_events["scientist_stunned"]
+            events["kard_offer_opened"] = encounter_events["kard_offer_opened"]
+            events["scientist_following"] = encounter_events["scientist_following"]
+            events["kard_offer_pending"] = encounter_model.kard_offer_pending
+
+            # $F026 precedes $EBEB in the original local loop. If both would
+            # trigger on the same frame, the KARD offer owns the modal state.
+            if encounter_events["kard_offer_opened"] and interior_events["terminal_opened"]:
+                interior_model.close_terminal()
+                computer_model.close_terminal()
+                events["interior_terminal_opened"] = false
+
+            if interior_events["terminal_opened"] and not encounter_model.kard_offer_pending:
                 computer_model.open_terminal(
                     int(interior_events["terminal_kind"]),
                     interior_model.zone_index,
                     interior_model.password_gate_active,
-                    supply_model.carried_scientists > 0
+                    supply_model.carried_scientists > 0 or encounter_model.scientist_present()
                 )
             if interior_events["terminal_closed"]:
                 computer_model.close_terminal()
@@ -213,9 +251,20 @@ func step(
             var macro_x := floori(float(screen_origin.x) / 5.0)
             var macro_y := floori(float(screen_origin.y) / 5.0)
             interior_model.enter(entry_code, macro_x, macro_y, computer_model.progression_index)
+            var encounter_entry: Dictionary = encounter_model.enter_room(
+                interior_model.layout,
+                macro_x,
+                macro_y,
+                computer_model.progression_index,
+                interior_model.password_gate_active,
+                interior_model.local_position,
+                computer_model
+            )
             ground_phase = GROUND_PHASE_INTERIOR
             events["entered_interior"] = true
             events["interior_entry_code"] = entry_code
+            events["entity_spawned"] = encounter_entry["entity_spawned"]
+            events["entity_type"] = encounter_entry["entity_type"]
             return events
 
         if fire_pressed and _can_return_to_ship():
@@ -282,6 +331,7 @@ func _enter_ground_mode() -> void:
     ground_phase = GROUND_PHASE_SUPPLY
     supply_model.begin_menu()
     computer_model.begin_ground_session()
+    encounter_model.begin_ground_session()
     ground_model.reset()
     ground_player_offset = Vector2i.ZERO
     vx_hi = 0
@@ -305,9 +355,24 @@ func close_interior_terminal() -> void:
     computer_model.close_terminal()
 
 
+func answer_kard_offer(take_kard: bool) -> Dictionary:
+    return encounter_model.answer_kard_offer(
+        take_kard,
+        computer_model,
+        supply_model.ship_scientists,
+        interior_model.local_position
+    )
+
+
+func kard_offer_pending() -> bool:
+    return encounter_model.kard_offer_pending
+
+
 func _can_return_to_ship() -> bool:
+    # $EB5B widens only the negative X bound when local entity type is 6.
+    var min_x := -27 if encounter_model.scientist_present() else -7
     return (
-        ground_player_offset.x >= -7
+        ground_player_offset.x >= min_x
         and ground_player_offset.x <= 7
         and ground_player_offset.y >= -7
         and ground_player_offset.y <= 7
@@ -318,7 +383,10 @@ func _exit_ground_mode() -> void:
     # $E760 consolidates TAKE AWAY equipment before flight resumes.
     # The local type-6 scientist only exists after EXIT SHIP; a successful
     # password gate consumes that scientist instead of returning it aboard.
-    var scientist_present := ground_phase != GROUND_PHASE_SUPPLY and supply_model.carried_scientists > 0
+    var scientist_present := (
+        ground_phase != GROUND_PHASE_SUPPLY
+        and (supply_model.carried_scientists > 0 or encounter_model.scientist_present())
+    )
     supply_model.return_from_ground(
         scientist_present,
         computer_model.password_solved_this_trip
@@ -340,6 +408,7 @@ func _exit_ground_mode() -> void:
     landed = false
     ground_player_offset = Vector2i.ZERO
     interior_model.reset()
+    encounter_model.reset_all()
 
 
 func _process_direction_input(input_bits: int) -> void:

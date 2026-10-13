@@ -304,9 +304,11 @@ The computer model tests cover startup state, KARD generation/replacement, bank 
 
 The **computer/KARD/password/economy layer is reconstructed and implemented**.
 
+The natural KARD source is now reconstructed in `ENCOUNTER_STATE.md`: roaming scientist type 4 can be stunned to type 5, approached for the exact Y/N generated-KARD offer, and promoted to accompanying type 6.
+
 Separate next subsystems:
 
-- scientist/NPC movement, stun combat and the world interaction that naturally offers generated KARDs;
 - progression-5/endgame behavior after all five passwords;
-- controlled VICE parity captures for terminal timing/presentation and KARD acquisition;
+- exact identities/player effects of remaining local entity types 1 and 3;
+- controlled VICE parity captures for terminal and scientist/KARD timing;
 - exact original raster/palette timing around the terminal screens.

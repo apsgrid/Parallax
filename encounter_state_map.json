@@ -1,0 +1,86 @@
+{
+  "image": {
+    "path": "Unpacked/playable_ram.bin",
+    "sha256": "232471c51e24254873f182b865378aca60a0b171490d75c66123e007e1cdb137"
+  },
+  "ground_session": {
+    "spawn_enabled": {"address": "0xE998", "initial": 1},
+    "kard_offer_available": {"address": "0xF060", "initial": 1}
+  },
+  "region_gate": {
+    "routine": "0xE833",
+    "formula": "floor((macro_y + 1) / 18) == progression_index",
+    "progression_address": "0x030E",
+    "confidence": "verified"
+  },
+  "spawn": {
+    "routine": "0xE981",
+    "x_range": [128, 191],
+    "y_range": [70, 133],
+    "random_source": "0xE977",
+    "type_selector": "($1000[2*macro_y+macro_x] & 7)",
+    "type_table": [1,3,4,4,4,4,4,1],
+    "confidence": "verified"
+  },
+  "scientist_types": {
+    "4": "roaming_scientist",
+    "5": "stunned_scientist",
+    "6": "accompanying_scientist",
+    "confidence": "verified"
+  },
+  "movement": {
+    "routine": "0xEA02",
+    "vectors": [[1,0],[-1,0],[0,1],[0,-1]],
+    "blocked_retry_count": 5,
+    "stunned_type_5_moves": false,
+    "wander_counter_threshold": 130,
+    "confidence": "verified"
+  },
+  "stun_projectile": {
+    "routine": "0xEDFD",
+    "requires_carried_stun_gun": "0xCF31 > 0",
+    "requires_carried_ammunition": "0xCF32 > 0",
+    "ammunition_cost": 1,
+    "stun_gun_cost": 0,
+    "vectors": [[4,0],[-4,0],[0,4],[0,-4]],
+    "sprite_pointers": ["0x46","0x47","0x45","0x44"],
+    "entity_hit_window": {"x": [-6,5], "y": [-6,5]},
+    "impact_states": ["0x80","0x81","0x82","0x83","0x84","0x85","0x86","0x87"],
+    "impact_frames": 16,
+    "confidence": "verified"
+  },
+  "hit_transition": {
+    "type_4": 5,
+    "type_6": 5,
+    "other": "remove_entity",
+    "respawn_enabled_after_hit": false,
+    "confidence": "verified"
+  },
+  "kard_interaction": {
+    "routine": "0xF026",
+    "requires_type": 5,
+    "approach_window": {"x": [-9,8], "y": [-6,5]},
+    "offer_routine": "0xF061",
+    "offer_once_per_outing": true,
+    "keys": ["Y","N"],
+    "generation_happens_before_answer": true,
+    "yes": "insert_generated_kard",
+    "no": "discard_generated_kard",
+    "post_prompt_if_no_ship_scientist": "type_5_to_type_6",
+    "confidence": "verified"
+  },
+  "return": {
+    "normal_x": [-7,7],
+    "type_6_x": [-27,7],
+    "y": [-7,7],
+    "reconcile": "0xE760",
+    "unsolved_type_6": "ship_scientist=1",
+    "solved_type_6": "scientist_not_restored",
+    "confidence": "verified"
+  },
+  "open": [
+    "Exact player-facing identities/effects of local entity types 1 and 3",
+    "Progression-5/endgame behavior after GLOBE",
+    "Controlled VICE parity capture of stun/KARD/capture timing"
+  ]
+}
