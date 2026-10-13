@@ -30,8 +30,8 @@ Generated graph JSON remains local under `rea_audit/`.
 ## REA reconstruction obligation ledger
 
 Authenticated review Evidence was generated with REA's own `createEvidence()` and `createEvidenceBundle()` implementation.
-- ledger ID: `rol_56bc67be9498f13c864ba7d36bca7fe953527d37d7c1197d844990af98d8c0b4`
-- closure digest: `01f3129847d5d2f661257b8ea1752f7756d5b7b3b9ceddd13a677aabc53efb31`
+- ledger ID: `rol_db8032e1057e4aa71242b01f1cc7f336e3eea15b44fea24d57610a419ee1bc82`
+- closure digest: `b200eeea69a8898054ffb1e7503e5ae88ea215f775042554725e3bde3446ac60`
 - status: `unknown` (intentionally conservative)
 - required obligations: 6
 - verified: 0
@@ -41,13 +41,13 @@ Tracked obligations:
 1. shield behavior beyond toggle/status presentation;
 2. remaining local entity types 1 and 3 and their player-facing effects;
 3. exact collision-tile taxonomy;
-4. complete three-slot moving-flight-object scheduler/presentation for the verified 2*object_state hit awards;
+4. controlled runtime parity for the implemented three-slot moving-flight-object scheduler plus exact destruction/craft-impact semantics;
 5. controlled runtime parity for reconstructed outdoor/interior/scientist/endgame timing;
 6. exact ship/shadow projection ownership.
 
 ## Funes validation
 
-Current project memory source validates as 37 turns / 166 chunks / 0 rejected / 0 duplicate IDs before indexing.
+Current project memory source validates as 37 turns / 168 chunks / 0 rejected / 0 duplicate IDs before indexing.
 Recall checks correctly retrieved:
 - corrected Stage-5 range, byte count and SHA-256;
 - post-startup viewport/player coordinates and landing-ready conditions;

@@ -1,3 +1,9 @@
+# Unreleased — post-0.1.0 flight-object reconstruction
+
+Since the tagged 0.1.0 milestone, the authentic C64 three-slot moving-flight-object subsystem has been reconstructed and integrated. The $F874 record scheduler, spawn categories, surface/edge movement tables, materialization and animation pointers, region colour table, natural laser-hit scoring, craft/object collision event codes and 20-frame destruction lifetime now run in ordinary Godot play. Recovered VIC-II sprite pointers are regenerated locally with `generate_flight_object_sprites.py` and presented through three runtime sprite slots.
+
+New verification includes `verify_flight_objects.py` and `Godot/tests/test_flight_object_scheduler.gd`. The remaining object-combat work is runtime VICE parity, exact destruction presentation, and tracing $CF15 craft-impact events into the still-unresolved damage/shield path.
+
 # Parallax 0.1.0 — reconstructed vertical-slice build
 
 This is a private reconstruction milestone, not a claim that every original subsystem is complete.

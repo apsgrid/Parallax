@@ -37,12 +37,12 @@ const findings = [
   },
   {
     id: "combat.moving-object-scheduler",
-    title: "Reconstruct the complete three-slot moving flight-object scheduler and presentation",
+    title: "Validate the reconstructed moving flight-object scheduler and resolve craft-impact semantics",
     family: "flight-combat",
     location: "$F700/$F874 object loop; $F825-$F864 three-slot records; $FBFF-$FC4C laser-hit endpoint",
-    finding: "Resident single-laser motion, terrain collision priority/classes, destructible class-2/3 response, +15 score production, direct F7->00 laser writeback, the six-digit score consumer, moving-object height bands, signed -11..+9 hit window and 2*$F828 award are verified. Godot now produces authentic +15 score during ordinary terrain combat, so the initial 000010 record is naturally beatable. The remaining combat gap is the original three-slot object spawn/type/motion/render scheduler; no substitute enemies are spawned.",
-    sources: ["FLIGHT_COMBAT_STATE.md", "flight_combat_state_map.json", "Godot/scripts/flight_combat_model.gd", "Godot/scripts/flight_model.gd", "Godot/tests/test_flight_combat_model.gd", "Godot/tests/test_flight_combat_integration.gd", "verify_flight_combat.py", "trace_flight_combat.py", "trace_flight_object_loop.py", "trace_flight_objects.py"],
-    next: ["Reconstruct $F874 three-slot record scheduling and spawn/type selection from the original random/state tables.", "Implement original object movement/render state and connect it to the already-verified $FBFF-$FC4C hit primitive.", "Capture one controlled VICE +15 terrain event and one moving-object hit for runtime parity."]
+    finding: "The resident single-laser and destructible +15 path remain verified. The $F874 three-slot moving-object scheduler is now statically reconstructed and implemented end-to-end in Godot: exact three-record scratch-copy loop, surface/void/edge spawn categories, recovered surface and edge motion tables, craft-X compensation, materialization and state sprite-pointer tables, five-region colour lookup, overlap/craft collision handling, 20-frame destruction state, visual presentation, and natural 2*object_state laser awards. Remaining uncertainty is runtime parity and the downstream meaning of $FFA3->$CF15 craft-impact event codes, including whether shields participate.",
+    sources: ["FLIGHT_COMBAT_STATE.md", "flight_combat_state_map.json", "Godot/scripts/flight_combat_model.gd", "Godot/scripts/flight_model.gd", "Godot/scripts/main.gd", "Godot/tests/test_flight_combat_model.gd", "Godot/tests/test_flight_combat_integration.gd", "Godot/tests/test_flight_object_scheduler.gd", "verify_flight_combat.py", "verify_flight_objects.py", "generate_flight_object_sprites.py", "trace_flight_object_loop.py", "trace_flight_objects.py"],
+    next: ["Capture controlled VICE parity for one object spawn/movement sequence and one moving-object laser hit.", "Verify the exact original destruction presentation rather than treating the modern fade/scale as original behavior.", "Trace $FFA3->$CF15 event codes [2,2,3,2] into the craft damage path and determine whether $CF26 shields participate."]
   },
   {
     id: "ground.fine-scroll-collision",

@@ -40,6 +40,33 @@ const OBJECT_HEIGHT_BANDS := [
 const DIRECT_DESTRUCTION_MASTER_ID := 0xF7
 const DIRECT_DESTRUCTION_REPLACEMENT := 0x00
 
+# Three persistent $F835+ records are processed through the $F825 scratch
+# record one slot at a time. Only the first twelve bytes are live in $F874.
+const OBJECT_SLOT_COUNT := 3
+const OBJECT_CARDINAL_X := [0, 1, 0, -1, 0]
+const OBJECT_CARDINAL_Y := [-1, 0, 1, 0, 0]
+const OBJECT_DIAGONAL_X := [0, 1, 2, 1, 0, -1, -2, -1]
+const OBJECT_DIAGONAL_Y := [-2, -1, 0, 1, 2, 1, 0, -1]
+const OBJECT_CRAFT_X_COMP := [-4, -3, -3, -2, -2, -1, -1, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4]
+
+const OBJECT_STATE_SPRITES := {
+    1: [0xC9,0xCA,0xCB,0xCC,0xC9,0xCA,0xCB,0xCC],
+    2: [0xB9,0xBA,0xBB,0xBC,0xB9,0xBA,0xBB,0xBC],
+    3: [0x4C,0x4D,0x4E,0x4F,0x4C,0x4D,0x4E,0x4F],
+    5: [0x48,0x49,0x4A,0x4B,0x48,0x49,0x4A,0x4B],
+    6: [0x50,0x51,0x52,0x53,0x54,0x53,0x52,0x51],
+    7: [0x4C,0x4D,0x4E,0x4F,0x4C,0x4D,0x4E,0x4F],
+}
+
+# $FDC9 is five 8-byte region rows indexed by (region*8)|object_state.
+const OBJECT_COLOR_TABLE := [
+    0x00,0x02,0x05,0x08,0x00,0x0D,0x04,0x03,
+    0x00,0x0A,0x08,0x09,0x00,0x0E,0x02,0x04,
+    0x00,0x09,0x0A,0x0D,0x00,0x02,0x05,0x0E,
+    0x00,0x05,0x0E,0x09,0x00,0x08,0x0A,0x0D,
+    0x00,0x0E,0x04,0x03,0x00,0x0C,0x09,0x0A,
+]
+
 var projectile_x := 0
 var projectile_y := 0
 var projectile_state := 0
@@ -58,6 +85,16 @@ var explosion_counter := 0
 var explosion_cadence := 0
 var impact_variant := 0
 
+var object_slots: Array = []
+var object_random_bytes: Array = []
+var object_random_cursor := 0
+var object_attack_random_cursor := 0
+
+
+func configure_runtime(data: Dictionary) -> void:
+    object_random_bytes = data.get("seed_bytes", []).duplicate()
+    _ensure_object_slots()
+
 
 func reset() -> void:
     projectile_x = 0
@@ -71,6 +108,11 @@ func reset() -> void:
     explosion_counter = 0
     explosion_cadence = 0
     impact_variant = 0
+    object_random_cursor = 0
+    object_attack_random_cursor = 0
+    object_slots.clear()
+    for _i in range(OBJECT_SLOT_COUNT):
+        object_slots.append(_new_object_slot())
 
 
 func projectile_active() -> bool:
@@ -230,6 +272,136 @@ func resolve_moving_object_hit(object_state: int, object_x: int, object_y: int, 
     return events
 
 
+
+
+func object_slot(index: int) -> Dictionary:
+    _ensure_object_slots()
+    if index < 0 or index >= object_slots.size():
+        return {}
+    return object_slots[index]
+
+
+func step_objects(
+    craft_vx: int,
+    craft_vy: int,
+    craft_height: int,
+    macro_y: int,
+    terrain_sampler: Callable,
+    suppress_craft_collision: bool = false
+) -> Dictionary:
+    _ensure_object_slots()
+    var events := {
+        "spawned": [],
+        "despawned": [],
+        "laser_hits": [],
+        "craft_collisions": [],
+        "object_overlap_destroys": [],
+        "aux_fire_requests": [],
+        "score_award": 0,
+    }
+
+    for slot_index in range(OBJECT_SLOT_COUNT):
+        var slot: Dictionary = object_slots[slot_index]
+
+        if int(slot["state"]) == 0xFF:
+            if _advance_object_explosion(slot):
+                events["despawned"].append(slot_index)
+            object_slots[slot_index] = slot
+            continue
+
+        if int(slot["state"]) == 0:
+            if _try_spawn_object(slot, slot_index, macro_y, terrain_sampler):
+                events["spawned"].append(slot_index)
+            object_slots[slot_index] = slot
+            continue
+
+        _advance_object_materialization(slot)
+        _move_object(slot, craft_vx, craft_vy, terrain_sampler)
+
+        if not _object_in_bounds(slot):
+            slot = _new_object_slot()
+            object_slots[slot_index] = slot
+            events["despawned"].append(slot_index)
+            continue
+
+        # $FACC uses a second independent cursor over the same $0900 table.
+        if (_next_object_attack_random() & 0x07) == 0x04:
+            events["aux_fire_requests"].append({
+                "slot": slot_index,
+                "x": int(slot["x"]),
+                "y": int(slot["y"]),
+                "state": int(slot["state"]),
+            })
+
+        _advance_object_animation(slot)
+
+        var laser_hit := resolve_moving_object_hit(
+            int(slot["state"]),
+            int(slot["x"]),
+            int(slot["y"]),
+            craft_height
+        )
+        if bool(laser_hit["hit"]):
+            events["score_award"] += int(laser_hit["score_award"])
+            events["laser_hits"].append(slot_index)
+            _mark_object_explosion(slot)
+            object_slots[slot_index] = slot
+            continue
+
+        if not suppress_craft_collision and _object_hits_craft(slot, craft_height):
+            # $FFA3 consumes the primary object RNG and queues one of
+            # [2,2,3,2] in $CF15 before $FC4F destroys the object. The
+            # downstream meaning of that event remains open, but consuming
+            # and exposing it preserves scheduler determinism.
+            const CRAFT_COLLISION_EVENT_CODES := [2, 2, 3, 2]
+            var event_code := int(CRAFT_COLLISION_EVENT_CODES[_next_object_random() & 0x03])
+            events["craft_collisions"].append({
+                "slot": slot_index,
+                "event_code": event_code,
+            })
+            _mark_object_explosion(slot)
+            object_slots[slot_index] = slot
+            continue
+
+        if _object_overlap_count(slot, slot_index) >= 2:
+            events["object_overlap_destroys"].append(slot_index)
+            _mark_object_explosion(slot)
+
+        object_slots[slot_index] = slot
+
+    return events
+
+
+func object_render_state(index: int) -> Dictionary:
+    _ensure_object_slots()
+    if index < 0 or index >= object_slots.size():
+        return {"visible": false}
+    var slot: Dictionary = object_slots[index]
+    var state := int(slot["state"])
+    if state == 0:
+        return {"visible": false}
+    if state == 0xFF:
+        return {
+            "visible": true,
+            "exploding": true,
+            "x": int(slot["explosion_x"]),
+            "y": int(slot["explosion_y"]),
+            "explosion_frame": int(slot["direction"]),
+            "sprite_pointer": -1,
+            "color": int(slot["color"]),
+        }
+    return {
+        "visible": true,
+        "exploding": false,
+        "x": int(slot["x"]),
+        "y": int(slot["y"]),
+        "sprite_pointer": _object_sprite_pointer(slot),
+        "color": int(slot["color"]),
+        "state": state,
+        "category": state & 0x03,
+    }
+
+
 func collision_top_left_screen_cell() -> Vector2i:
     # $12F0 passes X=$0779-5; $0C1B then subtracts another 6 and divides
     # by four. Y subtracts $2F and maps every eight raster pixels to a row.
@@ -271,6 +443,318 @@ func _classify_code(code: int, height: int) -> int:
         if code == 0x64:
             return 4
     return 0
+
+
+
+
+
+
+func _ensure_object_slots() -> void:
+    if object_slots.size() == OBJECT_SLOT_COUNT:
+        return
+    object_slots.clear()
+    for _i in range(OBJECT_SLOT_COUNT):
+        object_slots.append(_new_object_slot())
+
+
+func _new_object_slot() -> Dictionary:
+    return {
+        "x": 0,
+        "y": 0,
+        "direction": 0,
+        "state": 0,
+        "half_neg": 0,
+        "half_pos": 0,
+        "unused_6": 0,
+        "anim_frame": 0,
+        "anim_subtick": 0,
+        "spawn_phase": 0,
+        "turn_timer": 0,
+        "unused_11": 0,
+        "color": 0,
+        "explosion_x": 0,
+        "explosion_y": 0,
+    }
+
+
+func _try_spawn_object(
+    slot: Dictionary,
+    slot_index: int,
+    macro_y: int,
+    terrain_sampler: Callable
+) -> bool:
+    if not terrain_sampler.is_valid():
+        return false
+
+    var x := (_next_object_random() & 0x3F) + 0x28
+    var y := (_next_object_random() & 0x7F) + 0x32
+    var samples: Array = terrain_sampler.call(x, y)
+    if samples.size() < 9:
+        return false
+
+    var category := 0
+    if _all_samples_equal(samples, 0x2A):
+        category = 1
+    elif _all_samples_void(samples):
+        category = 2
+    elif slot_index == 0:
+        category = 3
+    else:
+        return false
+
+    slot["x"] = x & 0xFF
+    slot["y"] = y & 0xFF
+    slot["half_neg"] = 0
+    slot["half_pos"] = 0
+    slot["anim_frame"] = 0
+    slot["anim_subtick"] = 0
+
+    if category == 3:
+        var edge_selector := _next_object_random() & 0x04
+        slot["turn_timer"] = edge_selector
+        if edge_selector != 0:
+            slot["y"] = 0x1E
+            slot["direction"] = _next_object_random() & 0x02
+            if int(slot["direction"]) == 0:
+                slot["y"] = 0xB4
+        else:
+            slot["x"] = 0x02
+            slot["direction"] = _next_object_random() & 0x02
+            if int(slot["direction"]) == 0:
+                slot["y"] = 0xA0
+            slot["direction"] = (int(slot["direction"]) + 1) & 0x07
+        slot["spawn_phase"] = 0x10
+    else:
+        slot["direction"] = 4
+        slot["spawn_phase"] = 0
+        slot["turn_timer"] = 0
+
+    var region := _object_region_index(macro_y)
+    slot["state"] = _choose_object_state(category, region)
+    slot["color"] = _object_color(region, int(slot["state"]))
+    return true
+
+
+func _choose_object_state(category: int, region: int) -> int:
+    var state := category | 0x04
+    if (_next_object_random() & 0x04) == 0:
+        if (region | 0x04) >= state:
+            state ^= 0x04
+    return state & 0xFF
+
+
+func _advance_object_materialization(slot: Dictionary) -> void:
+    var phase := int(slot["spawn_phase"])
+    if phase == 0x10:
+        return
+
+    if phase >= 0x0F:
+        slot["spawn_phase"] = (phase + 1) & 0xFF
+        return
+
+    phase += 1
+    slot["spawn_phase"] = phase
+    if phase == 0x0F:
+        slot["direction"] = _next_object_random() & 0x03
+
+
+func _move_object(slot: Dictionary, craft_vx: int, craft_vy: int, terrain_sampler: Callable) -> void:
+    var category := int(slot["state"]) & 0x03
+    if category == 3:
+        _move_edge_object(slot)
+    else:
+        _move_surface_object(slot, craft_vx, craft_vy, terrain_sampler)
+
+
+func _move_surface_object(
+    slot: Dictionary,
+    craft_vx: int,
+    craft_vy: int,
+    terrain_sampler: Callable
+) -> void:
+    craft_vx = clampi(craft_vx, -8, 8)
+
+    if craft_vx > 0 and (craft_vx & 1) != 0:
+        slot["half_pos"] = int(slot["half_pos"]) + 1
+        if int(slot["half_pos"]) == 2:
+            slot["half_pos"] = 0
+            slot["x"] = (int(slot["x"]) + 1) & 0xFF
+    elif craft_vx < 0 and (abs(craft_vx) & 1) != 0:
+        slot["half_neg"] = int(slot["half_neg"]) + 1
+        if int(slot["half_neg"]) == 2:
+            slot["half_neg"] = 0
+            slot["x"] = (int(slot["x"]) - 1) & 0xFF
+
+    var base_x := (int(slot["x"]) + int(OBJECT_CRAFT_X_COMP[craft_vx + 8])) & 0xFF
+    var base_y := (int(slot["y"]) + craft_vy) & 0xFF
+    var direction := int(slot["direction"])
+    var dx := 0
+    var dy := 0
+    if direction >= 0 and direction < OBJECT_CARDINAL_X.size():
+        dx = int(OBJECT_CARDINAL_X[direction])
+        dy = int(OBJECT_CARDINAL_Y[direction])
+
+    var candidate_x := (base_x + dx) & 0xFF
+    var candidate_y := (base_y + dy) & 0xFF
+    var samples: Array = terrain_sampler.call(candidate_x, candidate_y) if terrain_sampler.is_valid() else []
+
+    if _object_terrain_passable(int(slot["state"]) & 0x03, samples):
+        slot["x"] = candidate_x
+        slot["y"] = candidate_y
+        return
+
+    var turn := (direction + 1) & 0x03
+    if (_next_object_random() & 0x01) != 0:
+        turn = (turn - 2) & 0x03
+    slot["direction"] = turn
+    slot["x"] = base_x
+    slot["y"] = base_y
+
+
+func _move_edge_object(slot: Dictionary) -> void:
+    var direction := int(slot["direction"]) & 0x07
+    slot["x"] = (int(slot["x"]) + int(OBJECT_DIAGONAL_X[direction])) & 0xFF
+    slot["y"] = (int(slot["y"]) + int(OBJECT_DIAGONAL_Y[direction])) & 0xFF
+
+    slot["turn_timer"] = int(slot["turn_timer"]) + 1
+    if int(slot["turn_timer"]) != 0x10:
+        return
+
+    slot["turn_timer"] = 0
+    direction = (direction + 1) & 0x07
+    if (_next_object_random() & 0x08) != 0:
+        direction = (direction - 2) & 0x07
+    slot["direction"] = direction
+
+
+func _object_terrain_passable(category: int, samples: Array) -> bool:
+    if samples.size() < 9:
+        return false
+    if category == 2:
+        return _all_samples_void(samples)
+    return _all_samples_equal(samples, 0x2A)
+
+
+func _all_samples_equal(samples: Array, value: int) -> bool:
+    if samples.size() < 9:
+        return false
+    for i in range(9):
+        if (int(samples[i]) & 0xFF) != value:
+            return false
+    return true
+
+
+func _all_samples_void(samples: Array) -> bool:
+    if samples.size() < 9:
+        return false
+    for i in range(9):
+        var value := int(samples[i]) & 0xFF
+        if value < 0x0D or value >= 0x11:
+            return false
+    return true
+
+
+func _object_in_bounds(slot: Dictionary) -> bool:
+    var x := int(slot["x"]) & 0xFF
+    var y := int(slot["y"]) & 0xFF
+    return x >= 1 and x < 200 and y >= 5 and y < 250
+
+
+func _advance_object_animation(slot: Dictionary) -> void:
+    if int(slot["spawn_phase"]) < 0x10:
+        return
+    slot["anim_subtick"] = int(slot["anim_subtick"]) + 1
+    if int(slot["anim_subtick"]) == 3:
+        slot["anim_subtick"] = 0
+        slot["anim_frame"] = (int(slot["anim_frame"]) + 1) & 0xFF
+
+
+func _object_sprite_pointer(slot: Dictionary) -> int:
+    var phase := int(slot["spawn_phase"])
+    if phase < 0x10:
+        return 0xB1 + (phase >> 2)
+
+    var state := int(slot["state"])
+    if not OBJECT_STATE_SPRITES.has(state):
+        return -1
+    var table: Array = OBJECT_STATE_SPRITES[state]
+    return int(table[int(slot["anim_frame"]) & 0x07])
+
+
+func _object_region_index(macro_y: int) -> int:
+    return maxi(0, floori(float(macro_y) / 18.0))
+
+
+func _object_color(region: int, state: int) -> int:
+    var index := region * 8 + (state & 0x07)
+    if index < 0 or index >= OBJECT_COLOR_TABLE.size():
+        return 0
+    return int(OBJECT_COLOR_TABLE[index]) & 0x0F
+
+
+func _object_hits_craft(slot: Dictionary, craft_height: int) -> bool:
+    var state := int(slot["state"])
+    if state == 0 or state == 0xFF:
+        return false
+    var category := state & 0x03
+    var band: Vector2i = OBJECT_HEIGHT_BANDS[category]
+    if craft_height < band.x or craft_height >= band.y:
+        return false
+    var dx := (PROJECTILE_START_X - int(slot["x"])) & 0xFF
+    var dy := (PROJECTILE_START_Y - int(slot["y"])) & 0xFF
+    return _object_delta_hits(dx) and _object_delta_hits(dy)
+
+
+func _object_overlap_count(slot: Dictionary, current_index: int) -> int:
+    var state := int(slot["state"])
+    if state == 0 or state == 0xFF:
+        return 0
+    var category := state & 0x03
+    var count := 0
+
+    for i in range(OBJECT_SLOT_COUNT):
+        var other: Dictionary = object_slots[i]
+        var other_state := int(other["state"])
+        if other_state == 0xFF or (other_state & 0x03) != category:
+            continue
+        var dx := (int(slot["x"]) - int(other["x"])) & 0xFF
+        var dy := (int(slot["y"]) - int(other["y"])) & 0xFF
+        if _object_delta_hits(dx) and _object_delta_hits(dy):
+            count += 1
+    return count
+
+
+func _mark_object_explosion(slot: Dictionary) -> void:
+    slot["explosion_x"] = int(slot["x"])
+    slot["explosion_y"] = int(slot["y"])
+    slot["state"] = 0xFF
+    slot["direction"] = 0
+    slot["x"] = maxi(0, int(slot["x"]) - 0x0C) >> 2
+    slot["y"] = maxi(0, int(slot["y"]) - 0x32) >> 3
+
+
+func _advance_object_explosion(slot: Dictionary) -> bool:
+    slot["direction"] = int(slot["direction"]) + 1
+    if int(slot["direction"]) < 0x14:
+        return false
+    var cleared := _new_object_slot()
+    for key in cleared:
+        slot[key] = cleared[key]
+    return true
+
+
+func _next_object_random() -> int:
+    object_random_cursor = (object_random_cursor + 1) & 0xFF
+    if object_random_bytes.is_empty():
+        return object_random_cursor
+    return int(object_random_bytes[object_random_cursor % object_random_bytes.size()]) & 0xFF
+
+
+func _next_object_attack_random() -> int:
+    object_attack_random_cursor = (object_attack_random_cursor + 1) & 0xFF
+    if object_random_bytes.is_empty():
+        return object_attack_random_cursor
+    return int(object_random_bytes[object_attack_random_cursor % object_random_bytes.size()]) & 0xFF
 
 
 func _object_delta_hits(delta: int) -> bool:

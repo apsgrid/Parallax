@@ -184,7 +184,7 @@ No points are awarded merely for firing.
 
 The original contains a separate three-slot moving-object subsystem.
 
-Its complete spawn/movement/render scheduler is not yet implemented in modern play, but the laser-hit endpoint is exact.
+The complete $F874 three-record scheduler is now statically reconstructed and implemented in modern play. Each persistent record is copied through the $F825 scratch state, updated in original order, then copied back before the next of exactly three slots. The previously verified laser-hit endpoint is now reached naturally by these scheduled objects.
 
 The collision routine requires:
 
@@ -219,7 +219,7 @@ A successful moving-object laser hit:
 
 Because the full byte is doubled rather than only the low category bits, states such as 5/6/7 award 10/12/14 points.
 
-`FlightCombatModel.resolve_moving_object_hit()` implements this exact endpoint and is regression-tested. The modern game does not yet fabricate moving targets to trigger it.
+`FlightCombatModel.resolve_moving_object_hit()` implements this exact endpoint and is regression-tested. `step_objects()` now supplies the authentic three-slot spawn/movement lifecycle around it; no substitute enemy system is used.
 
 ## Godot implementation
 
@@ -237,7 +237,14 @@ Because the full byte is doubled rather than only the low category bits, states 
 - verified +15 destructible score path;
 - direct `$F7 -> $00` master writeback rule;
 - moving-object category height bands;
-- moving-object hit rectangle and `2*object_state` score endpoint.
+- moving-object hit rectangle and `2*object_state` score endpoint;
+- exact three-slot $F874 record scheduler;
+- recovered surface/void/edge spawn categories;
+- recovered surface and edge movement tables plus craft-X compensation;
+- recovered materialization and state animation sprite-pointer tables;
+- recovered five-region object-colour table;
+- craft/object and same-category object/object overlap destruction paths;
+- 20-frame object explosion lifetime and natural moving-object score production.
 
 `FlightModel` owns the combat model and feeds verified score awards into the same `EndgameModel` used by the recovered final score gate.
 
@@ -264,13 +271,34 @@ The integration regression proves:
 
 **FIRE -> recovered projectile -> $48 destructible collision -> +15 -> score 000015 -> strict qualification over CHRIX 000010**
 
+## Three-slot moving-object scheduler — $F874 (VERIFIED structure, IMPLEMENTED)
+
+The scheduler owns three persistent object records. For each slot it copies the first 12 live bytes through the $F825 scratch record, executes the per-object chain, writes the record back, and repeats until the slot counter reaches exactly three.
+
+Recovered per-object order at $F8CA:
+
+1. spawn/materialization ($F8EA);
+2. movement ($F9D0);
+3. auxiliary-fire request ($FACC);
+4. animation/presentation updates ($FB8A/$FB4F);
+5. player-laser collision ($FBFF);
+6. craft/object and object/object collision handling ($F76D).
+
+Recovered motion data includes the cardinal surface vectors at $FA7C/$FA81, 17-entry craft-X compensation at $FA86, and eight-direction edge-object vectors at $FB3F/$FB47. Sprite-pointer animation tables are recovered at $FD91-$FDC0 and the five-region colour table begins at $FDC9.
+
+Godot now executes this scheduler before advancing the player projectile, creates exactly three persistent visual slots, decodes the recovered VIC-II sprite pointers locally, applies the recovered per-object colours, and allows the verified `2*object_state` awards to occur naturally.
+
+Static verification: `verify_flight_objects.py`.
+Deterministic regression: `Godot/tests/test_flight_object_scheduler.gd`.
+
 ## Current boundary
 
-The **flight laser / terrain collision / authentic destructible-score path is reconstructed and implemented**.
+The **flight laser, terrain collision, authentic destructible-score path, and three-slot moving-object scheduler are reconstructed and implemented**.
 
-The moving-object laser-hit endpoint is also reconstructed and modeled, but the remaining flight-combat obligation is narrower:
+Remaining flight-combat evidence work is now narrower:
 
-- reconstruct and integrate the complete original **three-slot moving flight-object spawn/movement/render scheduler** around `$F700-$FFxx`;
-- thereby make the already-verified `2*object_state` score awards occur naturally;
-- capture controlled VICE parity for projectile timing, destructible writeback, and one moving-object hit;
-- separately finish any craft-damage/shield coupling associated with those objects.
+- capture controlled VICE parity for projectile timing, destructible writeback, one spawn/movement sequence and one moving-object hit;
+- verify exact original object-destruction presentation rather than treating the modern fade/scale as original behavior;
+- trace the recovered $FFA3 -> $CF15 event codes `[2,2,3,2]` through the downstream craft damage path;
+- determine whether the shield toggle participates in that path before implementing any shield protection effect;
+- resolve the exact activation cadence for the dynamic $93/$94 collision-band animation.

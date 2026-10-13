@@ -79,13 +79,19 @@
     "signed_delta_window": [-11,9],
     "score": "2 * full object_state",
     "modern_endpoint_implemented": true,
-    "natural_object_scheduler_implemented": false,
+    "natural_object_scheduler_implemented": true,
+    "scheduler_entry": "0xF874",
+    "slot_count": 3,
+    "slot_record_base": "0xF835",
+    "scratch_record": "0xF825",
+    "static_verifier": "verify_flight_objects.py",
+    "deterministic_test": "Godot/tests/test_flight_object_scheduler.gd",
     "confidence": "verified_endpoint"
   },
   "open": [
-    "Complete three-slot moving flight-object scheduler/spawn/movement/rendering",
-    "Controlled VICE parity for laser/destructible/object hit timing",
-    "Exact activation cadence for the dynamic $93/$94 collision-band animation",
-    "Craft damage/shield coupling for moving flight objects"
+    "Controlled VICE parity for laser/destructible/object spawn-movement-hit timing",
+    "Exact original moving-object destruction presentation",
+    "Downstream craft damage/shield semantics for $FFA3 -> $CF15 event codes",
+    "Exact activation cadence for the dynamic $93/$94 collision-band animation"
   ]
 }

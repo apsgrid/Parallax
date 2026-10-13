@@ -111,6 +111,7 @@ func configure_interior_runtime(data: Dictionary) -> void:
     interior_model.configure_runtime(data)
     computer_model.configure_runtime(data)
     encounter_model.configure_runtime(data)
+    flight_combat_model.configure_runtime(data)
 
 
 func configure_world_runtime(master_tiles: Array) -> void:
@@ -402,6 +403,34 @@ func advance_flight_projectile() -> Dictionary:
 
 func resolve_flight_projectile(samples: Array) -> Dictionary:
     var events: Dictionary = flight_combat_model.resolve_terrain(samples)
+    var score_award := int(events.get("score_award", 0))
+    if score_award > 0:
+        endgame_model.add_score(score_award)
+    return events
+
+
+
+
+func advance_flight_objects(terrain_sampler: Callable, suppress_craft_collision: bool = false) -> Dictionary:
+    if ground_transition_flag or endgame_model.active():
+        return {
+            "spawned": [],
+            "despawned": [],
+            "laser_hits": [],
+            "craft_collisions": [],
+            "object_overlap_destroys": [],
+            "aux_fire_requests": [],
+            "score_award": 0,
+        }
+
+    var events: Dictionary = flight_combat_model.step_objects(
+        vx_hi,
+        vy_hi,
+        flight_height,
+        viewport_macro().y,
+        terrain_sampler,
+        suppress_craft_collision
+    )
     var score_award := int(events.get("score_award", 0))
     if score_award > 0:
         endgame_model.add_score(score_award)

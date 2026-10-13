@@ -14,7 +14,7 @@ The local reconstruction currently uses:
 - `Godot/data/world_480.json`;
 - `Godot/data/interior_runtime.json`;
 - generated world/interior tile atlases;
-- generated on-foot and encounter sprite PNGs.
+- generated on-foot, encounter and flight-object sprite PNGs.
 
 These generated runtime assets are included in local exports but remain excluded from source control.
 
@@ -29,6 +29,7 @@ python extract_interior_runtime.py
 python generate_interior_tile_atlases.py
 python generate_ground_sprites.py
 python generate_encounter_sprites.py
+python generate_flight_object_sprites.py
 ```
 
 Run the canonical verification scripts before exporting.

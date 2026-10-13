@@ -12,6 +12,12 @@ const TILE_SIZE := 2.0
 const SIM_UNITS_PER_TILE := 8.0
 const WORLD_SCALE := TILE_SIZE / SIM_UNITS_PER_TILE
 const HEIGHT_SCALE := 0.25
+const C64_RGB := [
+    [0,0,0],[255,255,255],[104,55,43],[112,164,178],
+    [111,61,134],[88,141,67],[53,40,121],[184,199,111],
+    [111,79,37],[67,57,0],[154,103,89],[68,68,68],
+    [108,108,108],[154,210,132],[108,94,181],[149,149,149],
+]
 const WORLD_PATH := "res://data/world_480.json"
 const INTERIOR_DATA_PATH := "res://data/interior_runtime.json"
 const INITIAL_VIEW_ORIGIN_TILE := Vector2i(10, 30)
@@ -38,8 +44,10 @@ var ship: Node3D
 var ground_player: Sprite3D
 var ground_sprite_textures := {}
 var encounter_sprite_textures := {}
+var flight_object_textures := {}
 var encounter_entity: Sprite3D
 var stun_projectile: Sprite3D
+var flight_objects: Array[Sprite3D] = []
 var flight_projectile: MeshInstance3D
 var camera: Camera3D
 var hud: Label
@@ -107,12 +115,14 @@ func _ready() -> void:
     _load_interior_atlases()
     _load_ground_sprites()
     _load_encounter_sprites()
+    _load_flight_object_sprites()
     _build_environment()
     _build_world()
     _build_interior_root()
     _build_ship()
     _build_ground_player()
     _build_encounter_sprites()
+    _build_flight_objects()
     _build_camera()
     _build_hud()
     _build_supply_hud()
@@ -223,6 +233,9 @@ func _physics_process(_delta: float) -> void:
         ground_blocked_bits = int(collision["blocked_bits"])
         ground_right_contact_code = int(collision["right_code"])
 
+    # Original frame order: $F700 moving objects at $0952 precedes
+    # the $0E30 flight chain that advances the player projectile.
+    var flight_object_events := _advance_flight_objects()
     var flight_combat_events := _advance_flight_combat()
 
     var flight_special_code := -1
@@ -282,6 +295,12 @@ func _physics_process(_delta: float) -> void:
     if events["endgame_triggered"]:
         status_message = "FINAL TRANSPORTER — recovered stage-5 ending gate reached; press Z/FIRE"
 
+    if not flight_object_events["spawned"].is_empty():
+        status_message = "FLIGHT OBJECT — recovered three-slot scheduler spawned %d" % int(flight_object_events["spawned"][0])
+    if not flight_object_events["laser_hits"].is_empty():
+        status_message = "LAZER HIT — moving object +%d" % int(flight_object_events["score_award"])
+    if not flight_object_events["craft_collisions"].is_empty():
+        status_message = "FLIGHT OBJECT COLLISION — damage/shield effect still under verification"
     if bool(flight_combat_events.get("collision", false)):
         if bool(flight_combat_events.get("destructible", false)):
             status_message = "LAZER HIT — destructible world target +15"
@@ -704,6 +723,27 @@ func _load_encounter_sprites() -> void:
         encounter_sprite_textures[ptr] = ImageTexture.create_from_image(image)
 
 
+func _load_flight_object_sprites() -> void:
+    flight_object_textures.clear()
+    var pointers := []
+    for ptr in range(0x48, 0x55):
+        pointers.append(ptr)
+    for ptr in range(0xB1, 0xB5):
+        pointers.append(ptr)
+    for ptr in range(0xB9, 0xBD):
+        pointers.append(ptr)
+    for ptr in range(0xC9, 0xCD):
+        pointers.append(ptr)
+
+    for ptr in pointers:
+        var relative_path := "res://generated/flight_object_sprites/ptr_%02X.png" % ptr
+        var image := Image.load_from_file(ProjectSettings.globalize_path(relative_path))
+        if image == null or image.is_empty():
+            push_error("Unable to load generated C64 flight-object sprite: " + relative_path)
+            continue
+        flight_object_textures[ptr] = ImageTexture.create_from_image(image)
+
+
 func _build_world() -> void:
     tile_side_material = _make_material(Color(0.075, 0.08, 0.09))
 
@@ -848,6 +888,20 @@ func _build_encounter_sprites() -> void:
     stun_projectile.shaded = false
     stun_projectile.visible = false
     add_child(stun_projectile)
+
+
+func _build_flight_objects() -> void:
+    flight_objects.clear()
+    for slot_index in range(3):
+        var object_sprite := Sprite3D.new()
+        object_sprite.name = "FlightObject%d" % slot_index
+        object_sprite.pixel_size = WORLD_SCALE
+        object_sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+        object_sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+        object_sprite.shaded = false
+        object_sprite.visible = false
+        add_child(object_sprite)
+        flight_objects.append(object_sprite)
 
 
 func _build_camera() -> void:
@@ -1131,6 +1185,29 @@ func _is_landing_tile(x: int, y: int) -> bool:
     var code := _tile_code(wx, wy)
     return not (code >= 0x0D and code <= 0x10)
 
+
+
+
+
+func _advance_flight_objects() -> Dictionary:
+    return model.advance_flight_objects(Callable(self, "_flight_object_samples"))
+
+
+func _flight_object_samples(screen_x: int, screen_y: int) -> Array:
+    # $F727 maps the half-resolution object X and raster Y into the current
+    # character viewport before reading the same 3x3 footprint used at spawn
+    # and during category-1/2 movement.
+    var fine_x := posmod(-model.world_x, 8)
+    var fine_y := posmod(-model.world_y, 8)
+    var screen_col := floori(float(screen_x - (fine_x >> 1) - 0x0B) / 4.0)
+    var screen_row := floori(float(screen_y - 0x2F - fine_y) / 8.0)
+    var top_left := model.viewport_origin_tile() + Vector2i(screen_col, screen_row)
+
+    var samples: Array = []
+    for dy in range(3):
+        for dx in range(3):
+            samples.append(_tile_code(top_left.x + dx, top_left.y + dy))
+    return samples
 
 
 func _advance_flight_combat() -> Dictionary:
@@ -1459,6 +1536,22 @@ func _interior_pixel_to_world(position_value: Vector2i, y_value: float = 0.65) -
     )
 
 
+func _c64_color(index: int, alpha: float = 1.0) -> Color:
+    var rgb: Array = C64_RGB[index & 0x0F]
+    return Color8(int(rgb[0]), int(rgb[1]), int(rgb[2]), clampi(roundi(alpha * 255.0), 0, 255))
+
+
+func _flight_screen_to_world(screen_x: int, screen_y: int, y_value: float) -> Vector3:
+    var viewport_origin := model.viewport_origin_tile()
+    var tile_x := float(viewport_origin.x) + float(screen_x - 6) / 4.0
+    var tile_y := float(viewport_origin.y) + float(screen_y - 0x2F) / 8.0
+    return Vector3(
+        (tile_x - float(PLAYER_START_TILE.x)) * TILE_SIZE,
+        y_value,
+        (tile_y - float(PLAYER_START_TILE.y)) * TILE_SIZE
+    )
+
+
 func _update_visuals() -> void:
     var in_interior := model.in_interior()
     var in_endgame := model.endgame_active()
@@ -1519,6 +1612,41 @@ func _update_visuals() -> void:
             if encounter_sprite_textures.has(projectile_ptr):
                 stun_projectile.texture = encounter_sprite_textures[projectile_ptr]
             stun_projectile.position = _interior_pixel_to_world(model.encounter_model.projectile_position, 0.72)
+
+    for slot_index in range(flight_objects.size()):
+        var object_sprite: Sprite3D = flight_objects[slot_index]
+        var render: Dictionary = model.flight_combat_model.object_render_state(slot_index)
+        var object_visible := (
+            not model.ground_transition_flag
+            and not in_interior
+            and not in_endgame
+            and bool(render.get("visible", false))
+        )
+        object_sprite.visible = object_visible
+        if not object_visible:
+            continue
+
+        var exploding := bool(render.get("exploding", false))
+        var sprite_pointer := int(render.get("sprite_pointer", -1))
+        if sprite_pointer >= 0 and flight_object_textures.has(sprite_pointer):
+            object_sprite.texture = flight_object_textures[sprite_pointer]
+
+        var category := int(render.get("category", 0))
+        object_sprite.position = _flight_screen_to_world(
+            int(render.get("x", 0)),
+            int(render.get("y", 0)),
+            0.82 + float(category) * 0.04
+        )
+
+        var colour_index := int(render.get("color", 1))
+        if exploding:
+            var explosion_frame := int(render.get("explosion_frame", 0))
+            var alpha := maxf(0.18, 1.0 - float(explosion_frame) / 22.0)
+            object_sprite.modulate = _c64_color(colour_index, alpha)
+            object_sprite.scale = Vector3.ONE * (1.0 + float(explosion_frame) * 0.035)
+        else:
+            object_sprite.modulate = _c64_color(colour_index)
+            object_sprite.scale = Vector3.ONE
 
     if flight_projectile != null:
         var flight_shot_visible := (

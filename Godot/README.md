@@ -46,7 +46,7 @@ Current prototype:
 - recovered stage-5 unique winning destination: master marker (90,59) → final viewport macro (86,57)
 - recovered final FIRE effect, $030D=$7B ending-overlay handoff and strict >000010 initial score qualification
 - recovered original congratulatory ending, five-character UP/DOWN/FIRE name entry, best-score update and title return
-- executable endgame state machine and UI; verified destructible-terrain +15 score production now feeds the ending naturally, while the authentic moving-object scheduler remains open
+- executable endgame state machine and UI; verified destructible-terrain +15 score production and authentic three-slot moving-object score awards now feed the ending naturally
 - executable vertical slice: flight → land → supply → disembark → walk → interior terminal → outdoors → craft → flight
 - complete corrected 480×480 world available to the renderer
 - streamed world window that follows the craft
@@ -78,9 +78,9 @@ Controls:
 - F1: toggle diagnostic HUD
 - F2: toggle 3×3 landing-footprint overlay
 
-The deterministic reference layers live in `scripts/flight_model.gd`, `ground_model.gd`, `supply_model.gd`, `interior_model.gd`, `computer_model.gd`, `encounter_model.gd`, and `endgame_model.gd`. Endgame coverage lives in `tests/test_endgame_model.gd` and `test_endgame_integration.gd`; scientist/stun coverage lives in `test_encounter_model.gd` and `test_scientist_loop.gd`; computer/economy coverage lives in `test_computer_model.gd` and `test_computer_integration.gd`; the complete gameplay-loop regression lives in `tests/test_vertical_slice.gd`.
+The deterministic reference layers live in `scripts/flight_model.gd`, `flight_combat_model.gd`, `ground_model.gd`, `supply_model.gd`, `interior_model.gd`, `computer_model.gd`, `encounter_model.gd`, and `endgame_model.gd`. Flight-object coverage lives in `tests/test_flight_object_scheduler.gd`; endgame coverage lives in `tests/test_endgame_model.gd` and `test_endgame_integration.gd`; scientist/stun coverage lives in `test_encounter_model.gd` and `test_scientist_loop.gd`; computer/economy coverage lives in `test_computer_model.gd` and `test_computer_integration.gd`; the complete gameplay-loop regression lives in `tests/test_vertical_slice.gd`.
 
-Generated local world/graphics files are intentionally excluded from Git because they contain derived original game data. They are regenerated from the authorised local source media. Interior assets are rebuilt with `extract_interior_runtime.py` and `generate_interior_tile_atlases.py`; scientist/stun sprite assets are rebuilt with `generate_encounter_sprites.py`.
+Generated local world/graphics files are intentionally excluded from Git because they contain derived original game data. They are regenerated from the authorised local source media. Interior assets are rebuilt with `extract_interior_runtime.py` and `generate_interior_tile_atlases.py`; scientist/stun sprite assets are rebuilt with `generate_encounter_sprites.py`; flight-object sprite masks are rebuilt with `generate_flight_object_sprites.py`.
 
 
 Platform/export notes:
@@ -99,4 +99,5 @@ Flight combat update:
 - score feeds the recovered ending qualification naturally;
 - direct persistent laser writeback is `$F7 -> $00`;
 - moving-object hit geometry/height bands/`2*object_state` scoring are implemented as verified primitives;
-- authentic three-slot object spawn/motion remains open, so no substitute enemies are spawned.
+- the authentic three-slot $F874 scheduler is implemented: original spawn categories, movement tables, materialization/animation sprite pointers, region colour lookup, overlap/craft collision handling and natural laser-hit scoring now run in ordinary play;
+- generated sprites are decoded from the recovered VIC-II pointers and presented by three runtime `Sprite3D` slots; remaining work is controlled VICE parity, exact destruction visuals and the downstream $CF15 craft-damage/shield meaning.
